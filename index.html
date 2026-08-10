@@ -491,6 +491,7 @@ class Component extends DCLogic {
   }
 
   componentDidUpdate(prevProps, prevState) {
+    if (!prevState) return;
     if (prevState.view !== 'result' && this.state.view === 'result') {
       this.setupResultCanvas();
     }
@@ -716,7 +717,7 @@ class Component extends DCLogic {
         'x-app-token': Component.APP_TOKEN
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-5', max_tokens: 4096, system: systemPrompt,
+        model: 'claude-sonnet-5', max_tokens: 8192, system: systemPrompt,
         messages: [{ role: 'user', content: 'Aqui está o material do mapa simbólico integrado de ' + name + '.\n\n' + brief }]
       })
     });
