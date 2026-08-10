@@ -851,6 +851,8 @@ class Component extends DCLogic {
     // Data de nascimento validada — a análise em si só roda depois do
     // teste de Eneagrama, na próxima tela.
     this.setState({ view: 'enneagram', errorMessage: '' });
+    setTimeout(() => window.scrollTo(0, 0), 0);
+    setTimeout(() => window.scrollTo(0, 0), 100);
   };
 
   handleLikertSelect = (statementId, value) => () => {
@@ -897,6 +899,8 @@ class Component extends DCLogic {
         loading: false, readingLoading: false,
         view: 'result', placements, sections, expandedSection: null
       });
+      setTimeout(() => window.scrollTo(0, 0), 0);
+      setTimeout(() => window.scrollTo(0, 0), 100);
     } catch (err) {
       this.setState({
         loading: false, readingLoading: false,

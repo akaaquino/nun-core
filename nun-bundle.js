@@ -57578,6 +57578,14 @@
     }
     return sentence.slice(0, maxLength - 1).trimEnd() + "\u2026";
   }
+  function simplifyHexagramName(fullName) {
+    const match = /—\s*(.+?)\s*\(.*?([\u4E00-\u9FFF])\)/.exec(fullName);
+    if (!match) return fullName;
+    return `${match[1]} ${match[2]}`;
+  }
+  function simplifySefirahName(fullName) {
+    return fullName.replace(/\s*\([^)]*\)\s*$/, "");
+  }
   var ZODIAC_GLYPHS = {
     aries: "\u2648",
     taurus: "\u2649",
@@ -57697,7 +57705,7 @@
         return {
           system: "Astrologia",
           glyph: ZODIAC_GLYPHS[sunSign] ?? "\u2609",
-          value: `${sunSignName} \xB7 ${ascendantName}`,
+          value: sunSignName,
           description,
           shortDescription: firstSentence(description)
         };
@@ -57739,7 +57747,7 @@
         return {
           system: "I Ching",
           glyph: hexagramGlyph(engine.iching.primary.number),
-          value: hexagramKnowledge?.name ?? `Hexagrama ${engine.iching.primary.number}`,
+          value: hexagramKnowledge?.name ? simplifyHexagramName(hexagramKnowledge.name) : `Hexagrama ${engine.iching.primary.number}`,
           description,
           shortDescription: firstSentence(description)
         };
@@ -57769,7 +57777,7 @@
         return {
           system: "Kin Maia",
           glyph: String(engine.mayaKin.destiny.kin),
-          value: mayaKinKnowledge?.name ? `${mayaKinKnowledge.name} (Kin ${engine.mayaKin.destiny.kin})` : `Kin ${engine.mayaKin.destiny.kin}`,
+          value: mayaKinKnowledge?.name ?? `Kin ${engine.mayaKin.destiny.kin}`,
           description,
           shortDescription: firstSentence(description)
         };
@@ -57792,7 +57800,7 @@
         return {
           system: "Cabala",
           glyph: HEBREW_LETTER_GLYPHS[engine.kabbalah.hebrewLetter] ?? "\u05DB",
-          value: `${sefirah1Knowledge?.name ?? engine.kabbalah.sefirah1} \xB7 ${sefirah2Knowledge?.name ?? engine.kabbalah.sefirah2}`,
+          value: `${sefirah1Knowledge?.name ? simplifySefirahName(sefirah1Knowledge.name) : engine.kabbalah.sefirah1} \xB7 ${sefirah2Knowledge?.name ? simplifySefirahName(sefirah2Knowledge.name) : engine.kabbalah.sefirah2}`,
           description,
           shortDescription: firstSentence(description)
         };
@@ -57988,10 +57996,11 @@ Portugu\xEAs do Brasil.
         return void 0;
       }
     })() : void 0;
+    const simpleName = primaryKnowledge?.name ? primaryKnowledge.name.replace(/^Tipo\s*\d+\s*—\s*/, "") : `Tipo ${primaryType}`;
     return {
       system: "Eneagrama",
       glyph: String(primaryType),
-      value: primaryKnowledge?.name ? `${primaryKnowledge.name} (Ala ${wingType})` : `Tipo ${primaryType} (Ala ${wingType})`,
+      value: simpleName,
       description: primaryKnowledge?.description ?? "Seu tipo prim\xE1rio no teste de Eneagrama que voc\xEA respondeu.",
       shortDescription: firstSentence(
         primaryKnowledge?.description ?? "Seu tipo prim\xE1rio no teste de Eneagrama que voc\xEA respondeu."
