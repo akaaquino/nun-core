@@ -717,7 +717,7 @@ class Component extends DCLogic {
         'x-app-token': Component.APP_TOKEN
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-5', max_tokens: 8192, system: systemPrompt,
+        model: 'claude-sonnet-5', max_tokens: 8192, thinking: { type: 'disabled' }, system: systemPrompt,
         messages: [{ role: 'user', content: 'Aqui está o material do mapa simbólico integrado de ' + name + '.\n\n' + brief }]
       })
     });
@@ -737,7 +737,7 @@ class Component extends DCLogic {
         'x-app-token': Component.APP_TOKEN
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-5', max_tokens: 2048,
+        model: 'claude-sonnet-5', max_tokens: 2048, thinking: { type: 'disabled' },
         system: systemPrompt + '\n\n## Material do mapa desta pessoa\n\n' + brief,
         messages: [...history.map((m) => ({ role: m.role, content: m.text })), { role: 'user', content: question }]
       })
