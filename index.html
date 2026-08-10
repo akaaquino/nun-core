@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <script src="./nun-bundle.js"></script>
+<script src="./zodiac_icons.js"></script>
 <script src="./brazil-cities.js"></script>
 <script src="./support.js"></script>
 </head>
@@ -62,16 +63,16 @@
         <div style="display:flex;gap:10px;">
           <div style="flex:1;">
             <label class="nun-label">DATA DE NASCIMENTO</label>
-            <input type="date" class="nun-field" value="{{ dob }}" onChange="{{ handleDobChange }}">
+            <input type="text" inputmode="numeric" autocomplete="off" class="nun-field" value="{{ dob }}" onChange="{{ handleDobChange }}" placeholder="DD/MM/AAAA" maxlength="10">
             <sc-if value="{{ dobError }}" hint-placeholder-val="{{ false }}">
-              <span style="color:#e59a6b;font-size:11px;">Informe a data.</span>
+              <span style="color:#e59a6b;font-size:11px;">Informe a data (DD/MM/AAAA).</span>
             </sc-if>
           </div>
           <div style="flex:1;">
             <label class="nun-label">HORA DE NASCIMENTO</label>
-            <input type="time" class="nun-field" value="{{ birthTime }}" onChange="{{ handleTimeChange }}">
+            <input type="text" inputmode="numeric" autocomplete="off" class="nun-field" value="{{ birthTime }}" onChange="{{ handleTimeChange }}" placeholder="HH:MM" maxlength="5">
             <sc-if value="{{ timeError }}" hint-placeholder-val="{{ false }}">
-              <span style="color:#e59a6b;font-size:11px;">Informe a hora.</span>
+              <span style="color:#e59a6b;font-size:11px;">Informe a hora (HH:MM).</span>
             </sc-if>
           </div>
         </div>
@@ -643,8 +644,64 @@ class Component extends DCLogic {
   // ---------- Formulário ----------
 
   handleNameChange = (e) => this.setState({ name: e.target.value, nameError: false });
-  handleDobChange = (e) => this.setState({ dob: e.target.value, dobError: false });
-  handleTimeChange = (e) => this.setState({ birthTime: e.target.value, timeError: false });
+  // Formata automaticamente enquanto digita: 25121993 -> 25/12/1993
+  formatDateAsTyped(digits) {
+    const d = digits.slice(0, 2);
+    const m = digits.slice(2, 4);
+    const y = digits.slice(4, 8);
+    if (digits.length <= 2) return d;
+    if (digits.length <= 4) return `${d}/${m}`;
+    return `${d}/${m}/${y}`;
+  }
+
+  // Formata automaticamente enquanto digita: 1233 -> 12:33
+  formatTimeAsTyped(digits) {
+    const h = digits.slice(0, 2);
+    const m = digits.slice(2, 4);
+    if (digits.length <= 2) return h;
+    return `${h}:${m}`;
+  }
+
+  handleDobChange = (e) => {
+    const digits = e.target.value.replace(/\D/g, '').slice(0, 8);
+    this.setState({ dob: this.formatDateAsTyped(digits), dobError: false });
+  };
+
+  handleTimeChange = (e) => {
+    const digits = e.target.value.replace(/\D/g, '').slice(0, 4);
+    this.setState({ birthTime: this.formatTimeAsTyped(digits), timeError: false });
+  };
+
+  // Converte "DD/MM/AAAA" (o que a pessoa digita) em "AAAA-MM-DD" (o
+  // que o motor espera internamente) — retorna null se a data não for
+  // válida de verdade (dia/mês fora do intervalo, ano implausível,
+  // ou uma data que não existe, como 31/02).
+  parseBrDate(text) {
+    const match = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(text || '');
+    if (!match) return null;
+
+    const day = parseInt(match[1], 10);
+    const month = parseInt(match[2], 10);
+    const year = parseInt(match[3], 10);
+
+    if (month < 1 || month > 12) return null;
+    if (year < 1900 || year > 2100) return null;
+
+    const daysInMonth = new Date(year, month, 0).getDate();
+    if (day < 1 || day > daysInMonth) return null;
+
+    const pad = (n) => String(n).padStart(2, '0');
+    return `${year}-${pad(month)}-${pad(day)}`;
+  }
+
+  // Valida "HH:MM" — retorna true se hora 00-23 e minuto 00-59.
+  isValidTime(text) {
+    const match = /^(\d{2}):(\d{2})$/.exec(text || '');
+    if (!match) return false;
+    const hour = parseInt(match[1], 10);
+    const minute = parseInt(match[2], 10);
+    return hour >= 0 && hour <= 23 && minute >= 0 && minute <= 59;
+  }
   handleManualLatChange = (e) => this.setState({ manualLat: e.target.value, manualError: false });
   handleManualLonChange = (e) => this.setState({ manualLon: e.target.value, manualError: false });
   handleManualTzChange = (e) => this.setState({ manualTz: e.target.value });
@@ -766,8 +823,8 @@ class Component extends DCLogic {
     e.preventDefault();
 
     const nameError = !this.state.name.trim();
-    const dobError = !this.state.dob;
-    const timeError = !this.state.birthTime;
+    const dobError = !this.parseBrDate(this.state.dob);
+    const timeError = !this.isValidTime(this.state.birthTime);
     const countryError = !this.state.country;
     let stateError = false;
     let cityError = false;
@@ -817,7 +874,7 @@ class Component extends DCLogic {
       }
       const location = this.resolveBirthLocation();
       const birthData = {
-        name: this.state.name, birthDate: this.state.dob, birthTime: this.state.birthTime,
+        name: this.state.name, birthDate: this.parseBrDate(this.state.dob), birthTime: this.state.birthTime,
         city: location.city, state: location.state, country: location.country,
         latitude: location.latitude, longitude: location.longitude, timezone: location.timezone
       };
@@ -852,6 +909,26 @@ class Component extends DCLogic {
     return `<svg viewBox="0 0 24 24" style="width:100%;height:100%;"><text x="12" y="17" font-size="12" text-anchor="middle" fill="currentColor" font-family="Cinzel, serif" font-weight="600">${safe}</text></svg>`;
   }
 
+  // Filtro de segurança: caso a IA escolha um emoji colorido mesmo com a
+  // instrução do prompt, isso substitui pelo glifo neutro "✦" — remove
+  // primeiro o seletor de variação FE0F (que força apresentação em
+  // emoji mesmo em símbolos "seguros" como ☯), depois verifica se
+  // restou algum caractere de pictograma colorido (faixa Unicode a
+  // partir de U+1F000, onde vivem quase todos os emojis de objetos/
+  // animais/rostos/natureza), e por fim verifica uma pequena lista de
+  // símbolos que já são coloridos por padrão mesmo fora dessa faixa
+  // (ex.: ⚡ "alta tensão", que renderiza colorido nativamente).
+  static EMOJI_DEFAULT_PRESENTATION = new Set(['⚡', '☀', '⭐', '☔', '☂', '❄', '☁', '⛄', '⛅']);
+
+  sanitizeGlyph(glyph) {
+    const withoutVariationSelector = String(glyph ?? '').replace(/\uFE0F/g, '');
+    const chars = [...withoutVariationSelector];
+    const hasColorfulEmoji = chars.some(
+      (char) => char.codePointAt(0) >= 0x1F000 || Component.EMOJI_DEFAULT_PRESENTATION.has(char)
+    );
+    return hasColorfulEmoji ? '✦' : withoutVariationSelector;
+  }
+
   buildPlacementIcon(p) {
     const engine = this.engineResult;
     if (!engine) return this.textIcon(p.glyph);
@@ -862,8 +939,8 @@ class Component extends DCLogic {
     }
     if (p.system === 'Astrologia') {
       const sunSign = engine.astrology?.sun?.sign;
-      const img = Component.ZODIAC_IMAGES[sunSign];
-      if (img) return `<img src="assets/${img}" style="width:100%;height:100%;object-fit:contain" />`;
+      const svgIcon = window.ZODIAC_SVG_ICONS && window.ZODIAC_SVG_ICONS[sunSign];
+      if (svgIcon) return svgIcon;
     }
     return this.textIcon(p.glyph);
   }
@@ -1021,6 +1098,7 @@ class Component extends DCLogic {
 
       sectionCards: this.state.sections.map((sec, i) => ({
         ...sec,
+        glyph: this.sanitizeGlyph(sec.glyph),
         anchorId: `sec-${i}`,
         expanded: expandedSection === i,
         maxHeight: expandedSection === i ? '600px' : '0px',

@@ -57600,8 +57600,8 @@
     reflector: "Refletor"
   };
   var HUMAN_DESIGN_TYPE_GLYPHS = {
-    generator: "\u26A1",
-    "manifesting-generator": "\u26A1",
+    generator: "\u25C8",
+    "manifesting-generator": "\u25C8",
     manifestor: "\u2609",
     projector: "\u25C7",
     reflector: "\u263E"
@@ -57858,7 +57858,7 @@ Responda **apenas** com um objeto JSON v\xE1lido, sem texto antes ou depois, sem
   "sections": [
     {
       "eyebrow": "categoria curta do cart\xE3o, ex: 'A Arquitetura do Ser'",
-      "glyph": "um s\xEDmbolo curto e decorativo para o cart\xE3o (1-4 caracteres, pode ser um glifo unicode, n\xFAmero ou sigla)",
+      "glyph": "um s\xEDmbolo curto e decorativo para o cart\xE3o (1-3 caracteres). Use APENAS s\xEDmbolos monocrom\xE1ticos simples, como \u2726 \u2727 \u25C6 \u25C7 \u2609 \u263D \u221E \u27E1 \u203B \u273A \u26B9 ou um n\xFAmero/letra. NUNCA use emojis coloridos ou pict\xF3ricos (proibido: \u{1F985} \u{1F319} \u26A1 \u{1F525} \u{1F4A7} \u{1F31F} \u262F\uFE0F e qualquer emoji de objeto, animal, rosto ou natureza) \u2014 eles renderizam como stickers coloridos e quebram o visual dourado/monocrom\xE1tico da p\xE1gina.",
       "title": "t\xEDtulo curto e evocativo do cart\xE3o (n\xE3o repita o eyebrow)",
       "teaser": "1-2 frases de pr\xE9via, o suficiente para dar vontade de abrir o cart\xE3o",
       "body": "o texto completo do cart\xE3o \u2014 2-4 frases de prosa corrida, cruzando pelo menos 2-3 sistemas, seguindo a regra mais importante acima",
