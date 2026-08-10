@@ -493,6 +493,9 @@ class Component extends DCLogic {
 
   componentDidUpdate(prevProps, prevState) {
     if (!prevState) return;
+    if (prevState.view !== this.state.view) {
+      window.scrollTo(0, 0);
+    }
     if (prevState.view !== 'result' && this.state.view === 'result') {
       this.setupResultCanvas();
     }
