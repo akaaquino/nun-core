@@ -313,7 +313,7 @@
 
           <p style="margin:14px 0 0;font-size:15px;color:#a99a76;line-height:1.6;">{{ sec.teaser }}</p>
 
-          <div style="overflow:hidden;max-height:{{ sec.maxHeight }};transition:max-height 0.45s ease;">
+          <div style="overflow-y:{{ sec.contentOverflow }};max-height:{{ sec.maxHeight }};transition:max-height 0.45s ease;">
             <div style="margin-top:18px;padding-top:18px;border-top:1px solid rgba(179,146,90,0.2);">
               <p style="font-size:16px;line-height:1.8;color:#c9bd9f;margin:0 0 18px;">{{ sec.body }}</p>
               <sc-if value="{{ sec.quote }}" hint-placeholder-val="{{ false }}">
@@ -1116,6 +1116,7 @@ class Component extends DCLogic {
         shadow: expandedSection === i ? '0 0 30px rgba(224,178,94,0.08)' : 'none',
         dotSize: expandedSection === i ? '26px' : '8px',
         dotColor: expandedSection === i ? '#e0b25e' : 'rgba(179,146,90,0.35)',
+        contentOverflow: expandedSection === i ? 'auto' : 'hidden',
       })),
 
       chatMessages: this.state.chatMessages.map((m) => ({
