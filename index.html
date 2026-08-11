@@ -31,8 +31,51 @@
 
 <div style="position:relative;width:100%;min-height:100vh;background:#05070a;font-family:'EB Garamond',serif;color:#d9cdb0;overflow-x:hidden;">
 
+  <!-- ================= TELA DE LOGIN / CADASTRO ================= -->
+  <sc-if value="{{ isAuthView }}" hint-placeholder-val="{{ true }}">
+  <div style="position:relative;width:100%;min-height:100vh;overflow:hidden;background:#05070a;">
+    <div style="position:absolute;inset:0;background:radial-gradient(ellipse at 50% 30%, rgba(224,178,94,0.06), transparent 60%);pointer-events:none;"></div>
+    <div style="position:relative;z-index:2;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:28px 24px;">
+
+      <div style="position:relative;width:min(300px,55vw);margin:0 0 28px;">
+        <img src="assets/nun-logo-text.png" style="width:100%;display:block;" alt="NUN" />
+      </div>
+
+      <form onSubmit="{{ handleAuthSubmit }}" style="width:100%;max-width:380px;display:flex;flex-direction:column;gap:14px;background:rgba(12,15,17,0.55);border:1px solid rgba(179,146,90,0.25);border-radius:12px;padding:32px 28px;">
+
+        <h2 style="font-family:'Cinzel',serif;font-weight:600;font-size:16px;color:#f0d78c;text-align:center;margin:0 0 4px;letter-spacing:0.06em;">{{ authTitle }}</h2>
+
+        <div>
+          <label class="nun-label">USUÁRIO OU EMAIL</label>
+          <input type="text" autocomplete="username" class="nun-field" value="{{ authIdentifier }}" onChange="{{ handleAuthIdentifierChange }}" placeholder="seu@email.com">
+        </div>
+
+        <div>
+          <label class="nun-label">SENHA</label>
+          <input type="password" autocomplete="current-password" class="nun-field" value="{{ authPassword }}" onChange="{{ handleAuthPasswordChange }}" placeholder="mínimo 8 caracteres">
+        </div>
+
+        <sc-if value="{{ authError }}" hint-placeholder-val="{{ false }}">
+          <span style="color:#e59a6b;font-size:12px;text-align:center;">{{ authError }}</span>
+        </sc-if>
+
+        <button type="submit" disabled="{{ authLoading }}" style="margin-top:4px;border:1px solid #8a6a2c;border-radius:6px;padding:13px 18px;background:linear-gradient(180deg,#f3d98a 0%,#c9982f 55%,#8a6a2c 100%);color:#1a1204;font-family:'Cinzel',serif;font-weight:600;font-size:14px;letter-spacing:0.12em;cursor:pointer;">
+          {{ authButtonText }}
+        </button>
+
+        <button type="button" onClick="{{ toggleAuthMode }}" style="border:none;background:transparent;color:#8a7550;font-size:12.5px;text-align:center;cursor:pointer;text-decoration:underline;margin-top:2px;">
+          {{ authToggleText }}
+        </button>
+      </form>
+
+      <p style="font-size:11px;color:rgba(226,209,170,0.35);max-width:340px;text-align:center;margin-top:18px;line-height:1.5;">Sua senha nunca é guardada em texto puro — só um hash com sal aleatório. Guardamos apenas seus dados de nascimento, nada de fotos.</p>
+
+    </div>
+  </div>
+  </sc-if>
+
   <!-- ================= TELA DE FORMULÁRIO ================= -->
-  <sc-if value="{{ isFormView }}" hint-placeholder-val="{{ true }}">
+  <sc-if value="{{ isFormView }}" hint-placeholder-val="{{ false }}">
   <div style="position:relative;width:100%;min-height:100vh;overflow:hidden;" onMouseMove="{{ handleMouseMove }}">
 
     <div ref="{{ bgRef }}" style="position:absolute;inset:-40px;background-image:url('assets/nun-bg-clean.png');background-size:cover;background-position:center 20%;transition:transform 0.15s ease-out;will-change:transform;"></div>
@@ -40,6 +83,8 @@
     <div style="position:absolute;inset:0;background:radial-gradient(ellipse at 50% 30%, rgba(5,8,10,0.45) 0%, rgba(5,8,10,0.75) 55%, rgba(3,5,6,0.96) 100%);"></div>
 
     <canvas ref="{{ formCanvasRef }}" style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none;"></canvas>
+
+    <button onClick="{{ handleLogout }}" style="position:absolute;top:20px;right:20px;z-index:3;border:1px solid rgba(217,180,106,0.35);background:rgba(5,8,10,0.5);color:#8a7550;font-size:11px;letter-spacing:0.08em;padding:7px 14px;border-radius:6px;cursor:pointer;">SAIR</button>
 
     <div ref="{{ contentRef }}" style="position:relative;z-index:2;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:28px 24px 32px;box-sizing:border-box;transition:transform 0.15s ease-out;will-change:transform;">
 
@@ -401,7 +446,10 @@ class Component extends DCLogic {
     countryError: false, stateError: false, cityError: false,
     manualLat: '', manualLon: '', manualTz: '-03:00', showManualLocation: false, manualError: false,
     loading: false,
-    view: 'form', // 'form' | 'enneagram' | 'result'
+    view: 'auth', // 'auth' | 'form' | 'enneagram' | 'result'
+    authMode: 'login', // 'login' | 'register'
+    authIdentifier: '', authPassword: '', authError: '', authLoading: false,
+    sessionToken: '',
     enneagramAnswers: {}, enneagramError: '',
     readingLoading: false, readingError: '', errorMessage: '',
     placements: [], sections: [], expandedSection: null, hoverIdx: null, openPlacementIdx: null,
@@ -489,7 +537,134 @@ class Component extends DCLogic {
     this.setupFormCanvas();
     window.addEventListener('resize', this.handleFormResize);
     this.formRaf = requestAnimationFrame(this.formTick);
+    this.checkSavedSession();
   }
+
+  async checkSavedSession() {
+    const token = localStorage.getItem('nun_session_token');
+    if (!token) return;
+
+    try {
+      const profile = await this.fetchSavedProfile(token);
+      const patch = { sessionToken: token, view: 'form' };
+      if (profile) {
+        patch.name = profile.name;
+        patch.dob = this.isoToBrDate(profile.birth_date);
+        patch.birthTime = profile.birth_time;
+        patch.country = profile.country;
+        patch.stateBR = profile.state || '';
+        patch.cityBR = profile.city || '';
+        patch.manualLat = String(profile.latitude ?? '');
+        patch.manualLon = String(profile.longitude ?? '');
+        patch.manualTz = profile.timezone || '-03:00';
+      }
+      this.setState(patch);
+    } catch {
+      // token inválido/expirado — apaga e deixa a pessoa logar de novo
+      localStorage.removeItem('nun_session_token');
+    }
+  }
+
+  // Converte "AAAA-MM-DD" (formato salvo) de volta para "DD/MM/AAAA" (formato do campo)
+  isoToBrDate(iso) {
+    const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso || '');
+    if (!match) return '';
+    return `${match[3]}/${match[2]}/${match[1]}`;
+  }
+
+  async fetchSavedProfile(token) {
+    const response = await fetch(Component.PROXY_URL + '/profile', {
+      headers: { 'x-app-token': Component.APP_TOKEN, 'x-session-token': token }
+    });
+    if (!response.ok) throw new Error('Sessão inválida');
+    const data = await response.json();
+    return data.profile;
+  }
+
+  async saveProfile(birthData) {
+    if (!this.state.sessionToken) return;
+    try {
+      await fetch(Component.PROXY_URL + '/profile', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-app-token': Component.APP_TOKEN,
+          'x-session-token': this.state.sessionToken
+        },
+        body: JSON.stringify(birthData)
+      });
+    } catch {
+      // salvar o perfil é um bônus silencioso — se falhar, a leitura já aconteceu normalmente
+    }
+  }
+
+  handleAuthIdentifierChange = (e) => this.setState({ authIdentifier: e.target.value, authError: '' });
+  handleAuthPasswordChange = (e) => this.setState({ authPassword: e.target.value, authError: '' });
+  toggleAuthMode = () => this.setState((s) => ({
+    authMode: s.authMode === 'login' ? 'register' : 'login', authError: ''
+  }));
+
+  handleAuthSubmit = async (e) => {
+    e.preventDefault();
+
+    if (!this.state.authIdentifier.trim() || this.state.authPassword.length < 8) {
+      this.setState({ authError: 'Usuário/email e senha (mínimo 8 caracteres) são obrigatórios.' });
+      return;
+    }
+
+    this.setState({ authLoading: true, authError: '' });
+
+    try {
+      const endpoint = this.state.authMode === 'login' ? '/auth/login' : '/auth/register';
+      const response = await fetch(Component.PROXY_URL + endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-app-token': Component.APP_TOKEN },
+        body: JSON.stringify({
+          identifier: this.state.authIdentifier.trim(),
+          password: this.state.authPassword
+        })
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        this.setState({ authLoading: false, authError: data.error || 'Não foi possível entrar.' });
+        return;
+      }
+
+      localStorage.setItem('nun_session_token', data.token);
+      const profile = await this.fetchSavedProfile(data.token).catch(() => null);
+
+      const patch = { authLoading: false, sessionToken: data.token, view: 'form' };
+      if (profile) {
+        patch.name = profile.name;
+        patch.dob = this.isoToBrDate(profile.birth_date);
+        patch.birthTime = profile.birth_time;
+        patch.country = profile.country;
+        patch.stateBR = profile.state || '';
+        patch.cityBR = profile.city || '';
+        patch.manualLat = String(profile.latitude ?? '');
+        patch.manualLon = String(profile.longitude ?? '');
+        patch.manualTz = profile.timezone || '-03:00';
+      }
+      this.setState(patch);
+    } catch (err) {
+      this.setState({ authLoading: false, authError: 'Erro de conexão. Tente novamente.' });
+    }
+  };
+
+  handleLogout = async () => {
+    try {
+      await fetch(Component.PROXY_URL + '/auth/logout', {
+        method: 'POST',
+        headers: { 'x-app-token': Component.APP_TOKEN, 'x-session-token': this.state.sessionToken }
+      });
+    } catch {}
+    localStorage.removeItem('nun_session_token');
+    this.setState({
+      view: 'auth', sessionToken: '', authIdentifier: '', authPassword: '',
+      name: '', dob: '', birthTime: '', country: '', stateBR: '', cityBR: ''
+    });
+  };
 
   componentDidUpdate(prevProps, prevState) {
     if (!prevState) return;
@@ -895,6 +1070,10 @@ class Component extends DCLogic {
       const rawResponse = await this.callNunAI(window.NUN.NUN_STRUCTURED_SYSTEM_PROMPT, brief, this.state.name);
       const sections = this.parseSections(rawResponse);
 
+      if (this.state.sessionToken) {
+        this.saveProfile(birthData);
+      }
+
       this.setState({
         loading: false, readingLoading: false,
         view: 'result', placements, sections, expandedSection: null
@@ -1041,7 +1220,20 @@ class Component extends DCLogic {
       manualTz: this.state.manualTz,
       errorMessage: this.state.errorMessage,
       loading: this.state.loading,
+      isAuthView: this.state.view === 'auth',
       isFormView: this.state.view === 'form',
+      authIdentifier: this.state.authIdentifier,
+      authPassword: this.state.authPassword,
+      authError: this.state.authError,
+      authLoading: this.state.authLoading,
+      authTitle: this.state.authMode === 'login' ? 'ENTRAR' : 'CRIAR CONTA',
+      authButtonText: this.state.authLoading ? 'AGUARDE...' : (this.state.authMode === 'login' ? 'ENTRAR' : 'CRIAR CONTA'),
+      authToggleText: this.state.authMode === 'login' ? 'Ainda não tem conta? Criar uma' : 'Já tem conta? Entrar',
+      handleAuthSubmit: this.handleAuthSubmit,
+      handleAuthIdentifierChange: this.handleAuthIdentifierChange,
+      handleAuthPasswordChange: this.handleAuthPasswordChange,
+      toggleAuthMode: this.toggleAuthMode,
+      handleLogout: this.handleLogout,
       isEnneagramView: this.state.view === 'enneagram',
       isResultView: this.state.view === 'result',
       showLoadingModal: this.state.readingLoading || !!this.state.readingError,
