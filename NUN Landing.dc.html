@@ -21,6 +21,9 @@
     @keyframes nunShimmer { 0%,100% { filter: drop-shadow(0 0 18px rgba(240,200,120,0.55)); } 50% { filter: drop-shadow(0 0 30px rgba(240,200,120,0.85)); } }
     @keyframes mandalaSpin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
     @keyframes mandalaSpinRev { from { transform: rotate(0deg); } to { transform: rotate(-360deg); } }
+    @keyframes shaftSway1 { 0%,100% { transform: rotate(6deg) translateX(0); opacity: 0.75; } 50% { transform: rotate(9deg) translateX(18px); opacity: 1; } }
+    @keyframes shaftSway2 { 0%,100% { transform: rotate(-4deg) translateX(0); opacity: 0.6; } 50% { transform: rotate(-7deg) translateX(-14px); opacity: 0.9; } }
+    @keyframes shaftSway3 { 0%,100% { transform: rotate(-8deg) translateX(0); opacity: 0.5; } 50% { transform: rotate(-5deg) translateX(10px); opacity: 0.85; } }
     @keyframes logoGlowPulse { 0%,100% { opacity: 0.55; transform: scale(0.92); } 50% { opacity: 1; transform: scale(1.12); } }
     .nun-chat-textarea::placeholder { color: rgba(226,209,170,0.4); }
     .nun-chat-textarea:focus { outline: none; }
@@ -33,15 +36,25 @@
 
   <!-- ================= TELA DE LOGIN / CADASTRO ================= -->
   <sc-if value="{{ isAuthView }}" hint-placeholder-val="{{ true }}">
-  <div style="position:relative;width:100%;min-height:100vh;overflow:hidden;background:#05070a;">
-    <div style="position:absolute;inset:0;background:radial-gradient(ellipse at 50% 30%, rgba(224,178,94,0.06), transparent 60%);pointer-events:none;"></div>
+  <div style="position:relative;width:100%;min-height:100vh;overflow:hidden;background:#020608;">
+    <div style="position:absolute;inset:-30px;background-image:url('assets/underwater-temple.jpg');background-size:cover;background-position:center 30%;filter:brightness(0.75) saturate(1.05);"></div>
+
+    <div style="position:absolute;inset:0;background:linear-gradient(180deg, rgba(2,10,14,0.35) 0%, rgba(2,8,12,0.55) 45%, rgba(1,5,7,0.85) 100%);"></div>
+
+    <!-- raios de luz balançando, como luz entrando na água -->
+    <div class="light-shaft" style="position:absolute;top:-10%;left:38%;width:180px;height:130%;background:linear-gradient(180deg, rgba(150,220,255,0.22) 0%, rgba(150,220,255,0.06) 55%, transparent 100%);transform:rotate(6deg);filter:blur(6px);animation:shaftSway1 9s ease-in-out infinite;pointer-events:none;"></div>
+    <div class="light-shaft" style="position:absolute;top:-10%;left:52%;width:120px;height:130%;background:linear-gradient(180deg, rgba(170,230,255,0.18) 0%, rgba(170,230,255,0.05) 55%, transparent 100%);transform:rotate(-4deg);filter:blur(8px);animation:shaftSway2 12s ease-in-out infinite;pointer-events:none;"></div>
+    <div class="light-shaft" style="position:absolute;top:-10%;left:30%;width:90px;height:120%;background:linear-gradient(180deg, rgba(150,220,255,0.14) 0%, transparent 60%);transform:rotate(-8deg);filter:blur(5px);animation:shaftSway3 7.5s ease-in-out infinite;pointer-events:none;"></div>
+
+    <canvas ref="{{ authCanvasRef }}" style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none;"></canvas>
+
     <div style="position:relative;z-index:2;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:28px 24px;">
 
-      <div style="position:relative;width:min(300px,55vw);margin:0 0 28px;">
+      <div style="position:relative;width:min(300px,55vw);margin:0 0 28px;filter:drop-shadow(0 0 20px rgba(120,200,255,0.25));">
         <img src="assets/nun-logo-text.png" style="width:100%;display:block;" alt="NUN" />
       </div>
 
-      <form onSubmit="{{ handleAuthSubmit }}" style="width:100%;max-width:380px;display:flex;flex-direction:column;gap:14px;background:rgba(12,15,17,0.55);border:1px solid rgba(179,146,90,0.25);border-radius:12px;padding:32px 28px;">
+      <form onSubmit="{{ handleAuthSubmit }}" style="width:100%;max-width:380px;display:flex;flex-direction:column;gap:14px;background:rgba(8,14,17,0.6);border:1px solid rgba(150,210,255,0.2);border-radius:12px;padding:32px 28px;backdrop-filter:blur(3px);">
 
         <h2 style="font-family:'Cinzel',serif;font-weight:600;font-size:16px;color:#f0d78c;text-align:center;margin:0 0 4px;letter-spacing:0.06em;">{{ authTitle }}</h2>
 
@@ -63,12 +76,12 @@
           {{ authButtonText }}
         </button>
 
-        <button type="button" onClick="{{ toggleAuthMode }}" style="border:none;background:transparent;color:#8a7550;font-size:12.5px;text-align:center;cursor:pointer;text-decoration:underline;margin-top:2px;">
+        <button type="button" onClick="{{ toggleAuthMode }}" style="border:none;background:transparent;color:#a8c8d8;font-size:12.5px;text-align:center;cursor:pointer;text-decoration:underline;margin-top:2px;">
           {{ authToggleText }}
         </button>
       </form>
 
-      <p style="font-size:11px;color:rgba(226,209,170,0.35);max-width:340px;text-align:center;margin-top:18px;line-height:1.5;">Sua senha nunca é guardada em texto puro — só um hash com sal aleatório. Guardamos apenas seus dados de nascimento, nada de fotos.</p>
+      <p style="font-size:11px;color:rgba(200,225,235,0.4);max-width:340px;text-align:center;margin-top:18px;line-height:1.5;">Sua senha nunca é guardada em texto puro — só um hash com sal aleatório. Guardamos apenas seus dados de nascimento, nada de fotos.</p>
 
     </div>
   </div>
@@ -459,6 +472,7 @@ class Component extends DCLogic {
   engineResult = null;
 
   formCanvasRef = React.createRef();
+  authCanvasRef = React.createRef();
   resultCanvasRef = React.createRef();
   bgRef = React.createRef();
   contentRef = React.createRef();
@@ -534,11 +548,21 @@ class Component extends DCLogic {
   static ZODIAC_IMAGES = { capricorn: 'zodiac-capricorn.png', sagittarius: 'zodiac-sagittarius.png' };
 
   componentDidMount() {
+    this.setupAuthCanvas();
     this.setupFormCanvas();
     window.addEventListener('resize', this.handleFormResize);
+    window.addEventListener('resize', this.handleAuthResize);
     this.formRaf = requestAnimationFrame(this.formTick);
     this.checkSavedSession();
   }
+
+  handleAuthResize = () => {
+    const canvas = this.authCanvasRef.current;
+    if (!canvas) return;
+    const parent = canvas.parentElement;
+    canvas.width = parent.clientWidth;
+    canvas.height = parent.clientHeight;
+  };
 
   async checkSavedSession() {
     const token = localStorage.getItem('nun_session_token');
@@ -671,6 +695,12 @@ class Component extends DCLogic {
     if (prevState.view !== this.state.view) {
       window.scrollTo(0, 0);
     }
+    if (prevState.view !== 'form' && this.state.view === 'form') {
+      setTimeout(() => this.setupFormCanvas(), 0);
+    }
+    if (prevState.view !== 'auth' && this.state.view === 'auth') {
+      setTimeout(() => this.setupAuthCanvas(), 0);
+    }
     if (prevState.view !== 'result' && this.state.view === 'result') {
       this.setupResultCanvas();
     }
@@ -745,6 +775,54 @@ class Component extends DCLogic {
       ctx.shadowBlur = 0;
     }
     this.formRaf = requestAnimationFrame(this.formTick);
+  };
+
+  setupAuthCanvas = () => {
+    const canvas = this.authCanvasRef.current;
+    if (!canvas) return;
+    const parent = canvas.parentElement;
+    canvas.width = parent.clientWidth;
+    canvas.height = parent.clientHeight;
+    this.authBubbles = Array.from({ length: 55 }).map(() => this.spawnBubble(canvas, true));
+    if (!this.authRaf) this.authRaf = requestAnimationFrame(this.authTick);
+  };
+
+  spawnBubble(canvas, randomY) {
+    const r = Math.random() * 3.5 + 0.8;
+    return {
+      x: Math.random() * canvas.width,
+      y: randomY ? Math.random() * canvas.height : canvas.height + 15,
+      r,
+      speed: Math.random() * 0.55 + 0.15 + (r * 0.05),
+      wobble: Math.random() * Math.PI * 2,
+      wobbleSpeed: Math.random() * 0.03 + 0.01,
+      wobbleSize: Math.random() * 0.8 + 0.3,
+      alpha: Math.random() * 0.4 + 0.15,
+    };
+  }
+
+  authTick = () => {
+    const canvas = this.authCanvasRef.current;
+    if (canvas) {
+      const ctx = canvas.getContext('2d');
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      for (const b of this.authBubbles) {
+        b.y -= b.speed;
+        b.wobble += b.wobbleSpeed;
+        b.x += Math.sin(b.wobble) * b.wobbleSize * 0.15;
+        if (b.y < -20) Object.assign(b, this.spawnBubble(canvas, false));
+        ctx.beginPath();
+        ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
+        ctx.strokeStyle = `rgba(180,225,255,${b.alpha})`;
+        ctx.lineWidth = 0.8;
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(b.x - b.r * 0.3, b.y - b.r * 0.3, b.r * 0.28, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(210,240,255,${b.alpha * 1.4})`;
+        ctx.fill();
+      }
+    }
+    this.authRaf = requestAnimationFrame(this.authTick);
   };
 
   handleMouseMove = (e) => {
@@ -1344,6 +1422,7 @@ class Component extends DCLogic {
       handleChatKeyDown: this.handleChatKeyDown,
       handleChatSend: this.handleChatSend,
       formCanvasRef: this.formCanvasRef,
+      authCanvasRef: this.authCanvasRef,
       resultCanvasRef: this.resultCanvasRef,
       chatTextareaRef: this.chatTextareaRef,
       bgRef: this.bgRef,
