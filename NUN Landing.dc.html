@@ -1,0 +1,1357 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./nun-bundle.js"></script>
+<script src="./zodiac_icons.js"></script>
+<script src="./brazil-cities.js"></script>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&amp;family=EB+Garamond:ital,wght@0,400;0,500;1,400;1,500&amp;display=swap" rel="stylesheet">
+  <style>
+    body { margin: 0; background: #05070a; }
+    html { scroll-behavior: smooth; }
+    ::selection { background: rgba(224,178,94,0.35); color: #f2e6c8; }
+    @keyframes nunPulse { 0%,100% { opacity: 0.55; transform: scale(1); } 50% { opacity: 1; transform: scale(1.08); } }
+    @keyframes nunShimmer { 0%,100% { filter: drop-shadow(0 0 18px rgba(240,200,120,0.55)); } 50% { filter: drop-shadow(0 0 30px rgba(240,200,120,0.85)); } }
+    @keyframes mandalaSpin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+    @keyframes mandalaSpinRev { from { transform: rotate(0deg); } to { transform: rotate(-360deg); } }
+    @keyframes logoGlowPulse { 0%,100% { opacity: 0.55; transform: scale(0.92); } 50% { opacity: 1; transform: scale(1.12); } }
+    .nun-chat-textarea::placeholder { color: rgba(226,209,170,0.4); }
+    .nun-chat-textarea:focus { outline: none; }
+    .nun-field { width:100%;box-sizing:border-box;background:rgba(10,16,18,0.55);border:1px solid rgba(217,180,106,0.4);border-radius:6px;padding:10px 13px;color:#efe6d2;font-family:'EB Garamond',serif;font-size:14px;outline:none;colorScheme:dark; }
+    .nun-label { color:#d9b46a;font-size:10.5px;letter-spacing:0.14em;font-weight:600;margin-bottom:5px;display:block; }
+  </style>
+</helmet>
+
+<div style="position:relative;width:100%;min-height:100vh;background:#05070a;font-family:'EB Garamond',serif;color:#d9cdb0;overflow-x:hidden;">
+
+  <!-- ================= TELA DE LOGIN / CADASTRO ================= -->
+  <sc-if value="{{ isAuthView }}" hint-placeholder-val="{{ true }}">
+  <div style="position:relative;width:100%;min-height:100vh;overflow:hidden;background:#05070a;">
+    <div style="position:absolute;inset:0;background:radial-gradient(ellipse at 50% 30%, rgba(224,178,94,0.06), transparent 60%);pointer-events:none;"></div>
+    <div style="position:relative;z-index:2;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:28px 24px;">
+
+      <div style="position:relative;width:min(300px,55vw);margin:0 0 28px;">
+        <img src="assets/nun-logo-text.png" style="width:100%;display:block;" alt="NUN" />
+      </div>
+
+      <form onSubmit="{{ handleAuthSubmit }}" style="width:100%;max-width:380px;display:flex;flex-direction:column;gap:14px;background:rgba(12,15,17,0.55);border:1px solid rgba(179,146,90,0.25);border-radius:12px;padding:32px 28px;">
+
+        <h2 style="font-family:'Cinzel',serif;font-weight:600;font-size:16px;color:#f0d78c;text-align:center;margin:0 0 4px;letter-spacing:0.06em;">{{ authTitle }}</h2>
+
+        <div>
+          <label class="nun-label">USUÁRIO OU EMAIL</label>
+          <input type="text" autocomplete="username" class="nun-field" value="{{ authIdentifier }}" onChange="{{ handleAuthIdentifierChange }}" placeholder="seu@email.com">
+        </div>
+
+        <div>
+          <label class="nun-label">SENHA</label>
+          <input type="password" autocomplete="current-password" class="nun-field" value="{{ authPassword }}" onChange="{{ handleAuthPasswordChange }}" placeholder="mínimo 8 caracteres">
+        </div>
+
+        <sc-if value="{{ authError }}" hint-placeholder-val="{{ false }}">
+          <span style="color:#e59a6b;font-size:12px;text-align:center;">{{ authError }}</span>
+        </sc-if>
+
+        <button type="submit" disabled="{{ authLoading }}" style="margin-top:4px;border:1px solid #8a6a2c;border-radius:6px;padding:13px 18px;background:linear-gradient(180deg,#f3d98a 0%,#c9982f 55%,#8a6a2c 100%);color:#1a1204;font-family:'Cinzel',serif;font-weight:600;font-size:14px;letter-spacing:0.12em;cursor:pointer;">
+          {{ authButtonText }}
+        </button>
+
+        <button type="button" onClick="{{ toggleAuthMode }}" style="border:none;background:transparent;color:#8a7550;font-size:12.5px;text-align:center;cursor:pointer;text-decoration:underline;margin-top:2px;">
+          {{ authToggleText }}
+        </button>
+      </form>
+
+      <p style="font-size:11px;color:rgba(226,209,170,0.35);max-width:340px;text-align:center;margin-top:18px;line-height:1.5;">Sua senha nunca é guardada em texto puro — só um hash com sal aleatório. Guardamos apenas seus dados de nascimento, nada de fotos.</p>
+
+    </div>
+  </div>
+  </sc-if>
+
+  <!-- ================= TELA DE FORMULÁRIO ================= -->
+  <sc-if value="{{ isFormView }}" hint-placeholder-val="{{ false }}">
+  <div style="position:relative;width:100%;min-height:100vh;overflow:hidden;" onMouseMove="{{ handleMouseMove }}">
+
+    <div ref="{{ bgRef }}" style="position:absolute;inset:-40px;background-image:url('assets/nun-bg-clean.png');background-size:cover;background-position:center 20%;transition:transform 0.15s ease-out;will-change:transform;"></div>
+
+    <div style="position:absolute;inset:0;background:radial-gradient(ellipse at 50% 30%, rgba(5,8,10,0.45) 0%, rgba(5,8,10,0.75) 55%, rgba(3,5,6,0.96) 100%);"></div>
+
+    <canvas ref="{{ formCanvasRef }}" style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none;"></canvas>
+
+    <button onClick="{{ handleLogout }}" style="position:absolute;top:20px;right:20px;z-index:3;border:1px solid rgba(217,180,106,0.35);background:rgba(5,8,10,0.5);color:#8a7550;font-size:11px;letter-spacing:0.08em;padding:7px 14px;border-radius:6px;cursor:pointer;">SAIR</button>
+
+    <div ref="{{ contentRef }}" style="position:relative;z-index:2;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:28px 24px 32px;box-sizing:border-box;transition:transform 0.15s ease-out;will-change:transform;">
+
+      <div style="position:relative;width:min(360px,60vw);margin:0 0 2px;display:flex;align-items:center;justify-content:center;">
+        <div style="position:absolute;width:70%;height:70%;background:radial-gradient(ellipse at center, rgba(240,200,120,0.55) 0%, rgba(240,200,120,0.0) 70%);filter:blur(18px);animation:nunPulse 4s ease-in-out infinite;"></div>
+        <img src="./nun-mskb8jki-syxz.png" alt="NUN" style="position:relative;width:100%;height:auto;display:block;animation:nunShimmer 5s ease-in-out infinite;object-fit:fill;">
+      </div>
+
+      <p style="color:rgba(226,209,170,0.65);font-size:12px;letter-spacing:0.22em;text-transform:uppercase;margin:0 0 18px;text-align:center;">CONSCIÊNCIA INTERPRETATIVA</p>
+
+      <form onSubmit="{{ handleSubmit }}" style="width:100%;max-width:420px;display:flex;flex-direction:column;gap:12px;">
+
+        <div>
+          <label class="nun-label">NOME COMPLETO</label>
+          <input type="text" class="nun-field" value="{{ name }}" onChange="{{ handleNameChange }}" placeholder="Digite seu nome completo">
+          <sc-if value="{{ nameError }}" hint-placeholder-val="{{ false }}">
+            <span style="color:#e59a6b;font-size:11px;">Informe seu nome.</span>
+          </sc-if>
+        </div>
+
+        <div style="display:flex;gap:10px;">
+          <div style="flex:1;">
+            <label class="nun-label">DATA DE NASCIMENTO</label>
+            <input type="text" inputmode="numeric" autocomplete="off" class="nun-field" value="{{ dob }}" onChange="{{ handleDobChange }}" placeholder="DD/MM/AAAA" maxlength="10">
+            <sc-if value="{{ dobError }}" hint-placeholder-val="{{ false }}">
+              <span style="color:#e59a6b;font-size:11px;">Informe a data (DD/MM/AAAA).</span>
+            </sc-if>
+          </div>
+          <div style="flex:1;">
+            <label class="nun-label">HORA DE NASCIMENTO</label>
+            <input type="text" inputmode="numeric" autocomplete="off" class="nun-field" value="{{ birthTime }}" onChange="{{ handleTimeChange }}" placeholder="HH:MM" maxlength="5">
+            <sc-if value="{{ timeError }}" hint-placeholder-val="{{ false }}">
+              <span style="color:#e59a6b;font-size:11px;">Informe a hora (HH:MM).</span>
+            </sc-if>
+          </div>
+        </div>
+
+        <div>
+          <label class="nun-label">PAÍS DE NASCIMENTO</label>
+          <select class="nun-field" value="{{ country }}" onChange="{{ handleCountryChange }}" style="appearance:none;">
+            <option value="">Selecione o país</option>
+            <option value="brasil">Brasil</option>
+            <sc-for list="{{ countryOptions }}" as="c" hint-placeholder-count="40">
+              <option value="{{ c.key }}">{{ c.label }}</option>
+            </sc-for>
+          </select>
+          <sc-if value="{{ countryError }}" hint-placeholder-val="{{ false }}">
+            <span style="color:#e59a6b;font-size:11px;">Selecione o país.</span>
+          </sc-if>
+        </div>
+
+        <sc-if value="{{ isBrazil }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;gap:10px;">
+            <div style="flex:1;">
+              <label class="nun-label">ESTADO</label>
+              <select class="nun-field" value="{{ stateBR }}" onChange="{{ handleStateChange }}" style="appearance:none;">
+                <option value="">Selecione</option>
+                <sc-for list="{{ stateOptions }}" as="s" hint-placeholder-count="27">
+                  <option value="{{ s.key }}">{{ s.label }}</option>
+                </sc-for>
+              </select>
+              <sc-if value="{{ stateError }}" hint-placeholder-val="{{ false }}">
+                <span style="color:#e59a6b;font-size:11px;">Selecione o estado.</span>
+              </sc-if>
+            </div>
+            <div style="flex:1;">
+              <label class="nun-label">CIDADE</label>
+              <select class="nun-field" value="{{ cityBR }}" onChange="{{ handleCityBRChange }}" style="appearance:none;">
+                <option value="">Selecione</option>
+                <sc-for list="{{ cityOptions }}" as="ct" hint-placeholder-count="3">
+                  <option value="{{ ct.key }}">{{ ct.label }}</option>
+                </sc-for>
+                <option value="outra">Outra cidade</option>
+              </select>
+              <sc-if value="{{ cityError }}" hint-placeholder-val="{{ false }}">
+                <span style="color:#e59a6b;font-size:11px;">Selecione a cidade.</span>
+              </sc-if>
+            </div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ showManualLocation }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;flex-direction:column;gap:8px;padding:10px;border:1px dashed rgba(217,180,106,0.4);border-radius:8px;">
+            <span style="color:rgba(226,209,170,0.65);font-size:11px;line-height:1.4;">Ajuste as coordenadas se quiser mais precisão (opcional para outros países; obrigatório para "outra cidade").</span>
+            <div style="display:flex;gap:8px;">
+              <input type="number" step="0.0001" class="nun-field" value="{{ manualLat }}" onChange="{{ handleManualLatChange }}" placeholder="Latitude" style="flex:1;font-size:13px;padding:8px 10px;">
+              <input type="number" step="0.0001" class="nun-field" value="{{ manualLon }}" onChange="{{ handleManualLonChange }}" placeholder="Longitude" style="flex:1;font-size:13px;padding:8px 10px;">
+              <select class="nun-field" value="{{ manualTz }}" onChange="{{ handleManualTzChange }}" style="flex:1;font-size:13px;padding:8px 6px;">
+                <option value="-12:00">UTC-12</option><option value="-11:00">UTC-11</option>
+                <option value="-10:00">UTC-10</option><option value="-09:00">UTC-9</option>
+                <option value="-08:00">UTC-8</option><option value="-07:00">UTC-7</option>
+                <option value="-06:00">UTC-6</option><option value="-05:00">UTC-5</option>
+                <option value="-04:00">UTC-4</option><option value="-03:00">UTC-3</option>
+                <option value="-02:00">UTC-2</option><option value="-01:00">UTC-1</option>
+                <option value="+00:00">UTC+0</option><option value="+01:00">UTC+1</option>
+                <option value="+02:00">UTC+2</option><option value="+03:00">UTC+3</option>
+                <option value="+04:00">UTC+4</option><option value="+05:00">UTC+5</option>
+                <option value="+05:30">UTC+5:30</option><option value="+06:00">UTC+6</option>
+                <option value="+07:00">UTC+7</option><option value="+08:00">UTC+8</option>
+                <option value="+09:00">UTC+9</option><option value="+10:00">UTC+10</option>
+                <option value="+12:00">UTC+12</option>
+              </select>
+            </div>
+            <sc-if value="{{ manualError }}" hint-placeholder-val="{{ false }}">
+              <span style="color:#e59a6b;font-size:11px;">Informe latitude e longitude válidas.</span>
+            </sc-if>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ errorMessage }}" hint-placeholder-val="{{ false }}">
+          <span style="color:#e59a6b;font-size:12px;text-align:center;">{{ errorMessage }}</span>
+        </sc-if>
+
+        <button type="submit" disabled="{{ loading }}" style="margin-top:4px;position:relative;border:1px solid #8a6a2c;border-radius:6px;padding:13px 18px;background:linear-gradient(180deg,#f3d98a 0%,#c9982f 55%,#8a6a2c 100%);color:#1a1204;font-family:'Cinzel',serif;font-weight:600;font-size:14px;letter-spacing:0.12em;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;box-shadow:0 6px 24px rgba(201,152,47,0.35);" style-hover="{{ btnHoverStyle }}">
+          <span>{{ buttonText }}</span>
+          <span style="width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-bottom:10px solid #1a1204;"></span>
+        </button>
+
+      </form>
+    </div>
+  </div>
+  </sc-if>
+
+  <!-- ================= TELA DO TESTE DE ENEAGRAMA ================= -->
+  <sc-if value="{{ isEnneagramView }}" hint-placeholder-val="{{ false }}">
+  <div style="position:relative;width:100%;min-height:100vh;overflow:hidden;background:#05070a;">
+    <div style="position:absolute;inset:0;background:radial-gradient(ellipse at 50% 20%, rgba(224,178,94,0.06), transparent 60%);pointer-events:none;"></div>
+    <div style="position:relative;z-index:2;max-width:560px;margin:0 auto;padding:40px 24px 60px;">
+
+      <div style="text-align:center;margin-bottom:8px;">
+        <p style="font-family:'Cinzel',serif;letter-spacing:0.28em;font-size:12px;color:#b3925a;margin:0 0 10px;">MAIS UMA CAMADA</p>
+        <h1 style="font-family:'Cinzel',serif;font-weight:700;font-size:24px;color:#f2d68f;margin:0 0 12px;">Teste de Eneagrama</h1>
+        <p style="font-size:13px;color:#9c8a63;line-height:1.6;margin:0 0 6px;">Diferente dos outros sistemas, o Eneagrama não é calculado a partir da sua data de nascimento — ele vem de como você mesmo se reconhece. Marque o quanto cada frase combina com você.</p>
+        <p style="font-size:12px;color:#6b5a3a;margin:0;">{{ answeredCount }} de 18 respondidas</p>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:18px;margin-top:28px;">
+        <sc-for list="{{ enneagramQuestions }}" as="q" hint-placeholder-count="18">
+          <div style="background:rgba(12,15,17,0.55);border:1px solid rgba(179,146,90,0.2);border-radius:10px;padding:18px 20px;">
+            <p style="margin:0 0 14px;font-size:14.5px;color:#e2d1aa;line-height:1.5;">{{ q.text }}</p>
+            <div style="display:flex;justify-content:space-between;gap:4px;">
+              <sc-for list="{{ q.options }}" as="opt" hint-placeholder-count="5">
+                <label style="display:flex;flex-direction:column;align-items:center;gap:5px;cursor:pointer;flex:1;">
+                  <input type="radio" name="{{ q.id }}" checked="{{ opt.checked }}" onChange="{{ opt.onSelect }}" style="width:16px;height:16px;accent-color:#e0b25e;cursor:pointer;">
+                  <span style="font-size:9px;color:rgba(226,209,170,0.5);text-align:center;line-height:1.2;">{{ opt.label }}</span>
+                </label>
+              </sc-for>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+
+      <sc-if value="{{ enneagramError }}" hint-placeholder-val="{{ false }}">
+        <p style="color:#e59a6b;font-size:13px;text-align:center;margin:20px 0 0;">{{ enneagramError }}</p>
+      </sc-if>
+
+      <button onClick="{{ handleEnneagramSubmit }}" disabled="{{ loading }}" style="margin-top:28px;width:100%;position:relative;border:1px solid #8a6a2c;border-radius:6px;padding:14px 18px;background:linear-gradient(180deg,#f3d98a 0%,#c9982f 55%,#8a6a2c 100%);color:#1a1204;font-family:'Cinzel',serif;font-weight:600;font-size:14px;letter-spacing:0.12em;cursor:pointer;">
+        {{ enneagramButtonText }}
+      </button>
+
+    </div>
+  </div>
+  </sc-if>
+
+  <!-- ================= MODAL DE CARREGAMENTO / ERRO ================= -->
+  <sc-if value="{{ showLoadingModal }}" hint-placeholder-val="{{ false }}">
+    <div style="position:fixed;inset:0;z-index:10;background:rgba(3,5,6,0.92);display:flex;align-items:center;justify-content:center;padding:24px;overflow-y:auto;">
+      <div style="max-width:480px;text-align:left;border:1px solid rgba(217,180,106,0.5);border-radius:10px;padding:40px 36px;background:rgba(10,14,16,0.95);box-shadow:0 0 60px rgba(240,200,120,0.15);">
+
+        <sc-if value="{{ readingLoading }}" hint-placeholder-val="{{ false }}">
+          <div style="text-align:center;">
+            <div style="width:52px;height:52px;border-radius:50%;border:1.5px solid #e0b25e;margin:0 auto 20px;display:flex;align-items:center;justify-content:center;animation:nunPulse 3s ease-in-out infinite;">
+              <div style="width:8px;height:8px;border-radius:50%;background:#f0d78c;box-shadow:0 0 12px 4px rgba(240,200,120,0.8);"></div>
+            </div>
+            <h2 style="font-family:'Cinzel',serif;color:#f2d68f;letter-spacing:0.1em;font-size:20px;margin:0 0 12px;">AS ÁGUAS ESTÃO SE REVELANDO</h2>
+            <p style="color:rgba(226,209,170,0.75);font-size:15px;line-height:1.6;margin:0;">Calculando o mapa de {{ name }} — astrologia, numerologia, tarô, runas, I Ching, human design, gene keys, kin maia, ba zi, cabala e eneagrama, cruzados e interpretados. Isso pode levar de 15 a 40 segundos.</p>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ readingError }}" hint-placeholder-val="{{ false }}">
+          <div style="text-align:center;">
+            <h2 style="font-family:'Cinzel',serif;color:#e59a6b;letter-spacing:0.1em;font-size:20px;margin:0 0 12px;">AS ÁGUAS SE TURVARAM</h2>
+            <p style="color:rgba(226,209,170,0.75);font-size:15px;line-height:1.6;margin:0 0 24px;">{{ readingError }}</p>
+            <div style="text-align:center;">
+              <button onClick="{{ handleClose }}" style="border:1px solid rgba(217,180,106,0.6);background:transparent;color:#e0b25e;font-family:'Cinzel',serif;letter-spacing:0.1em;font-size:13px;padding:10px 20px;border-radius:6px;cursor:pointer;">FECHAR</button>
+            </div>
+          </div>
+        </sc-if>
+
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- ================= TELA DE RESULTADO (O MAPA) ================= -->
+  <sc-if value="{{ isResultView }}" hint-placeholder-val="{{ false }}">
+  <div style="position:relative;width:100%;background:#05070a;overflow:hidden;">
+
+    <div style="position:absolute;inset:0;background:radial-gradient(ellipse 900px 700px at 50% 0%, rgba(224,178,94,0.08), transparent 60%), radial-gradient(ellipse 700px 900px at 100% 80%, rgba(224,178,94,0.05), transparent 60%);pointer-events:none;"></div>
+
+    <img src="assets/mandala-gold.svg" alt="" style="position:absolute;top:-260px;left:50%;transform:translateX(-50%);width:1100px;height:1100px;opacity:0.16;pointer-events:none;filter:drop-shadow(0 0 30px rgba(224,178,94,0.35));" />
+
+    <canvas ref="{{ resultCanvasRef }}" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:1;"></canvas>
+
+    <!-- HERO -->
+    <div style="position:relative;z-index:2;display:flex;flex-direction:column;align-items:center;text-align:center;padding:88px 24px 48px;max-width:760px;margin:0 auto;">
+      <div style="position:relative;width:180px;height:64px;margin-bottom:22px;display:flex;align-items:center;justify-content:center;">
+        <div style="position:absolute;width:140%;height:220%;background:radial-gradient(ellipse, rgba(224,178,94,0.55), transparent 70%);filter:blur(14px);animation:logoGlowPulse 3.2s ease-in-out infinite;"></div>
+        <img src="assets/nun-logo-text.png" style="position:relative;width:100%;height:auto;object-fit:contain;" alt="NUN">
+      </div>
+      <p style="font-family:'Cinzel',serif;letter-spacing:0.32em;font-size:12px;color:#b3925a;margin:0 0 10px;">O MAPA DE</p>
+      <h1 style="font-family:'Cinzel',serif;font-weight:700;font-size:37px;letter-spacing:0.03em;color:#f2d68f;margin:0 0 22px;line-height:1.25;">{{ name }}</h1>
+      <p style="font-size:15px;color:#9c8a63;max-width:480px;line-height:1.6;margin:0;">Toque em cada carta para revelar o que os sistemas dizem.</p>
+    </div>
+
+    <!-- GRADE DE POSICIONAMENTOS-CHAVE -->
+    <div style="position:relative;z-index:2;max-width:960px;margin:0 auto 60px;padding:0 24px;">
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;">
+        <sc-for list="{{ placementCards }}" as="p" hint-placeholder-count="7">
+          <div onMouseEnter="{{ p.onEnter }}" onMouseLeave="{{ p.onLeave }}" onClick="{{ p.onOpen }}" style="background:rgba(15,19,20,0.6);border:1px solid {{ p.border }};border-radius:8px;padding:18px 12px;display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center;cursor:pointer;transition:border-color 0.25s ease, transform 0.25s ease;transform:{{ p.transform }};">
+            <div style="width:56px;height:52px;color:#e0b25e;filter:drop-shadow(0 0 6px rgba(224,178,94,0.6));" dangerouslySetInnerHTML="{{ p.iconHtml }}"></div>
+            <span style="font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:#8a7550;">{{ p.system }}</span>
+            <span style="font-size:12px;color:#efe6d2;line-height:1.3;">{{ p.value }}</span>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+
+    <!-- MODAL DE EXPLICAÇÃO DE UM POSICIONAMENTO -->
+    <sc-if value="{{ openPlacement }}" hint-placeholder-val="{{ false }}">
+      <div onClick="{{ handleClosePlacement }}" style="position:fixed;inset:0;z-index:20;background:rgba(3,5,6,0.85);display:flex;align-items:center;justify-content:center;padding:24px;">
+        <div onClick="{{ stopPropagation }}" style="max-width:480px;max-height:80vh;overflow-y:auto;background:rgba(12,15,17,0.97);border:1px solid rgba(224,178,94,0.45);border-radius:12px;padding:32px;box-shadow:0 0 60px rgba(224,178,94,0.12);">
+          <div style="display:flex;align-items:center;gap:14px;margin-bottom:18px;">
+            <div style="width:44px;height:44px;flex:none;border-radius:50%;border:1px solid rgba(224,178,94,0.5);display:flex;align-items:center;justify-content:center;color:#e0b25e;" dangerouslySetInnerHTML="{{ openPlacement.iconHtml }}"></div>
+            <div>
+              <p style="margin:0 0 2px;font-size:10px;letter-spacing:0.16em;text-transform:uppercase;color:#8a7550;">{{ openPlacement.system }}</p>
+              <h3 style="margin:0;font-family:'Cinzel',serif;font-weight:600;font-size:17px;color:#f0d78c;">{{ openPlacement.value }}</h3>
+            </div>
+          </div>
+          <p style="font-size:14.5px;line-height:1.75;color:#c9bd9f;margin:0;white-space:pre-wrap;">{{ openPlacement.shortDescription }}</p>
+          <div style="text-align:right;margin-top:24px;">
+            <button onClick="{{ handleClosePlacement }}" style="border:1px solid rgba(217,180,106,0.5);background:transparent;color:#e0b25e;font-family:'Cinzel',serif;letter-spacing:0.1em;font-size:12px;padding:9px 18px;border-radius:6px;cursor:pointer;">FECHAR</button>
+          </div>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- TRILHA DE PROGRESSO -->
+    <div style="position:relative;z-index:2;display:flex;justify-content:center;align-items:center;gap:6px;margin-bottom:28px;">
+      <sc-for list="{{ sectionCards }}" as="sec" hint-placeholder-count="7">
+        <button onClick="{{ sec.jumpTo }}" title="{{ sec.title }}" style="width:{{ sec.dotSize }};height:8px;padding:0;border-radius:4px;border:none;cursor:pointer;background:{{ sec.dotColor }};transition:all 0.3s ease;"></button>
+      </sc-for>
+    </div>
+
+    <!-- CARTÕES INTERATIVOS -->
+    <div style="position:relative;z-index:2;max-width:680px;margin:0 auto;padding:0 24px 40px;display:flex;flex-direction:column;gap:16px;">
+      <sc-for list="{{ sectionCards }}" as="sec" hint-placeholder-count="7">
+        <div id="{{ sec.anchorId }}" onClick="{{ sec.toggle }}" style="cursor:pointer;background:rgba(12,15,17,0.6);border:1px solid {{ sec.borderColor }};border-radius:12px;padding:22px 24px;transition:border-color 0.25s ease, box-shadow 0.25s ease;box-shadow:{{ sec.shadow }};">
+
+          <div style="display:flex;align-items:center;gap:16px;">
+            <div style="width:48px;height:48px;flex:none;border-radius:50%;border:1px solid rgba(224,178,94,0.5);display:flex;align-items:center;justify-content:center;box-shadow:0 0 20px rgba(224,178,94,0.12) inset;">
+              <span style="font-family:'Cinzel',serif;font-size:16px;color:#e0b25e;">{{ sec.glyph }}</span>
+            </div>
+            <div style="flex:1;">
+              <p style="margin:0 0 2px;font-size:10px;letter-spacing:0.18em;text-transform:uppercase;color:#8a7550;">{{ sec.eyebrow }}</p>
+              <h2 style="margin:0;font-family:'Cinzel',serif;font-weight:600;font-size:18px;color:#f0d78c;line-height:1.3;">{{ sec.title }}</h2>
+            </div>
+            <div style="width:22px;height:22px;flex:none;color:#b3925a;transform:{{ sec.arrowTransform }};transition:transform 0.3s ease;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M6 9l6 6 6-6"></path></svg>
+            </div>
+          </div>
+
+          <p style="margin:14px 0 0;font-size:15px;color:#a99a76;line-height:1.6;">{{ sec.teaser }}</p>
+
+          <div style="overflow-y:{{ sec.contentOverflow }};max-height:{{ sec.maxHeight }};transition:max-height 0.45s ease;">
+            <div style="margin-top:18px;padding-top:18px;border-top:1px solid rgba(179,146,90,0.2);">
+              <p style="font-size:16px;line-height:1.8;color:#c9bd9f;margin:0 0 18px;">{{ sec.body }}</p>
+              <sc-if value="{{ sec.quote }}" hint-placeholder-val="{{ false }}">
+                <p style="font-family:'EB Garamond',serif;font-style:italic;font-size:16px;line-height:1.6;color:#f2d68f;margin:0;padding-left:14px;border-left:2px solid rgba(224,178,94,0.5);">{{ sec.quote }}</p>
+              </sc-if>
+            </div>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+
+    <!-- CHAT DE ACOMPANHAMENTO -->
+    <div style="position:relative;z-index:2;max-width:680px;margin:0 auto;padding:8px 24px 64px;">
+      <div style="border-top:1px solid rgba(179,146,90,0.2);padding-top:32px;margin-bottom:20px;text-align:center;">
+        <p style="font-family:'Cinzel',serif;letter-spacing:0.2em;font-size:13px;color:#b3925a;margin:0 0 8px;">PERGUNTE ÀS ÁGUAS</p>
+        <p style="font-size:13px;color:#8a7550;margin:0;">Tem alguma dúvida sobre o que apareceu no seu mapa? Pergunte diretamente.</p>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:14px;margin-bottom:16px;max-height:440px;overflow-y:auto;padding-right:4px;">
+        <sc-for list="{{ chatMessages }}" as="msg" hint-placeholder-count="0">
+          <div style="align-self:{{ msg.align }};max-width:88%;background:{{ msg.bg }};border:1px solid {{ msg.border }};border-radius:14px;padding:12px 16px;">
+            <p style="margin:0;font-size:14px;line-height:1.65;color:{{ msg.color }};white-space:pre-wrap;">{{ msg.text }}</p>
+          </div>
+        </sc-for>
+
+        <sc-if value="{{ chatLoading }}" hint-placeholder-val="{{ false }}">
+          <div style="align-self:flex-start;max-width:88%;background:rgba(15,19,20,0.6);border:1px solid rgba(179,146,90,0.25);border-radius:14px;padding:12px 16px;">
+            <p style="margin:0;font-size:14px;color:#8a7550;">As águas estão respondendo...</p>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ chatError }}" hint-placeholder-val="{{ false }}">
+          <p style="color:#e59a6b;font-size:13px;margin:0;">{{ chatError }}</p>
+        </sc-if>
+      </div>
+
+      <!-- Campo de escrita estilo Claude: caixa arredondada, textarea que
+           cresce conforme o texto, botão circular de enviar no canto. -->
+      <form onSubmit="{{ handleChatSend }}" style="position:relative;background:rgba(10,16,18,0.6);border:1px solid rgba(217,180,106,0.35);border-radius:22px;padding:14px 56px 14px 18px;box-shadow:0 4px 24px rgba(0,0,0,0.25);transition:border-color 0.2s ease;">
+        <textarea
+          ref="{{ chatTextareaRef }}"
+          class="nun-chat-textarea"
+          value="{{ chatInput }}"
+          onChange="{{ handleChatInputChange }}"
+          onKeyDown="{{ handleChatKeyDown }}"
+          placeholder="Pergunte às águas..."
+          rows="1"
+          style="width:100%;box-sizing:border-box;background:transparent;border:none;resize:none;color:#efe6d2;font-family:'EB Garamond',serif;font-size:15px;line-height:1.5;max-height:160px;overflow-y:auto;display:block;"
+        ></textarea>
+        <button type="submit" disabled="{{ chatSendDisabled }}" style="position:absolute;right:10px;bottom:10px;width:34px;height:34px;border-radius:50%;border:none;cursor:pointer;background:{{ chatSendBg }};color:#1a1204;display:flex;align-items:center;justify-content:center;transition:background 0.2s ease;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;"><path d="M12 19V5M5 12l7-7 7 7"></path></svg>
+        </button>
+      </form>
+    </div>
+
+    <div style="position:relative;z-index:2;text-align:center;padding:0 24px 60px;">
+      <button onClick="{{ handleRestart }}" style="border:1px solid rgba(217,180,106,0.4);background:transparent;color:#b3925a;font-family:'Cinzel',serif;letter-spacing:0.12em;font-size:12px;padding:10px 18px;border-radius:6px;cursor:pointer;">FAZER OUTRA CONSULTA</button>
+    </div>
+
+    <!-- FOOTER -->
+    <div style="position:relative;z-index:2;text-align:center;padding:32px 24px 80px;border-top:1px solid rgba(179,146,90,0.15);max-width:680px;margin:0 auto;">
+      <img src="assets/mandala-gold.svg" alt="" style="position:absolute;bottom:-70px;left:50%;transform:translateX(-50%);width:520px;height:520px;opacity:0.14;pointer-events:none;filter:drop-shadow(0 0 20px rgba(224,178,94,0.3));" />
+      <p style="font-family:'Cinzel',serif;letter-spacing:1.96em;font-size:12px;color:#6b5a3a;line-height:0;">NUN</p>
+    </div>
+
+  </div>
+  </sc-if>
+
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:480,&quot;height&quot;:760},&quot;buttonLabel&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;INICIAR ANÁLISE&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;particleCount&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;default&quot;:70,&quot;min&quot;:20,&quot;max&quot;:150,&quot;step&quot;:10,&quot;tsType&quot;:&quot;number&quot;},&quot;particleColor&quot;:{&quot;editor&quot;:&quot;color&quot;,&quot;default&quot;:&quot;#f0d78c&quot;,&quot;options&quot;:[&quot;#f0d78c&quot;,&quot;#e0b25e&quot;,&quot;#8fd6d6&quot;,&quot;#c9982f&quot;],&quot;tsType&quot;:&quot;string&quot;}}">
+class Component extends DCLogic {
+  // URL do Worker do Cloudflare que faz proxy seguro para a Anthropic —
+  // a chave de API de verdade fica só lá (como Secret do Worker), nunca
+  // aqui no código do navegador. Troque pela URL do seu Worker depois
+  // de publicar (ver worker.js e o passo a passo de deploy).
+  static PROXY_URL = 'https://nun-core.yuriaquinoc.workers.dev';
+  static APP_TOKEN = 'nun-nextjs-2026'; // deve ser igual ao APP_TOKEN do worker.js
+
+  state = {
+    name: '', dob: '', birthTime: '',
+    country: '', stateBR: '', cityBR: '',
+    nameError: false, dobError: false, timeError: false,
+    countryError: false, stateError: false, cityError: false,
+    manualLat: '', manualLon: '', manualTz: '-03:00', showManualLocation: false, manualError: false,
+    loading: false,
+    view: 'auth', // 'auth' | 'form' | 'enneagram' | 'result'
+    authMode: 'login', // 'login' | 'register'
+    authIdentifier: '', authPassword: '', authError: '', authLoading: false,
+    sessionToken: '',
+    enneagramAnswers: {}, enneagramError: '',
+    readingLoading: false, readingError: '', errorMessage: '',
+    placements: [], sections: [], expandedSection: null, hoverIdx: null, openPlacementIdx: null,
+    chatMessages: [], chatInput: '', chatLoading: false, chatError: ''
+  };
+  brief = '';
+  engineResult = null;
+
+  formCanvasRef = React.createRef();
+  resultCanvasRef = React.createRef();
+  bgRef = React.createRef();
+  contentRef = React.createRef();
+  chatTextareaRef = React.createRef();
+
+  formParticles = [];
+  resultParticles = [];
+  resultEmbers = [];
+
+  // Os 27 estados + 5.571 municípios do Brasil (dados oficiais IBGE) são
+  // carregados de brazil-cities.js, em window.BRAZIL_STATES — arquivo
+  // separado porque é grande (~375KB) e não muda com frequência.
+
+  // Países estrangeiros comuns, com coordenadas e fuso da capital como
+  // referência padrão (sem considerar horário de verão) — ajustável nos
+  // campos manuais para maior precisão.
+  static COUNTRIES = {
+    argentina: { label: 'Argentina', lat: -34.6037, lon: -58.3816, tz: '-03:00' },
+    chile: { label: 'Chile', lat: -33.4489, lon: -70.6693, tz: '-04:00' },
+    uruguai: { label: 'Uruguai', lat: -34.9011, lon: -56.1645, tz: '-03:00' },
+    paraguai: { label: 'Paraguai', lat: -25.2637, lon: -57.5759, tz: '-04:00' },
+    bolivia: { label: 'Bolívia', lat: -16.5000, lon: -68.1500, tz: '-04:00' },
+    peru: { label: 'Peru', lat: -12.0464, lon: -77.0428, tz: '-05:00' },
+    colombia: { label: 'Colômbia', lat: 4.7110, lon: -74.0721, tz: '-05:00' },
+    venezuela: { label: 'Venezuela', lat: 10.4806, lon: -66.9036, tz: '-04:00' },
+    equador: { label: 'Equador', lat: -0.1807, lon: -78.4678, tz: '-05:00' },
+    eua: { label: 'Estados Unidos', lat: 38.9072, lon: -77.0369, tz: '-05:00' },
+    canada: { label: 'Canadá', lat: 45.4215, lon: -75.6972, tz: '-05:00' },
+    mexico: { label: 'México', lat: 19.4326, lon: -99.1332, tz: '-06:00' },
+    portugal: { label: 'Portugal', lat: 38.7223, lon: -9.1393, tz: '+00:00' },
+    espanha: { label: 'Espanha', lat: 40.4168, lon: -3.7038, tz: '+01:00' },
+    franca: { label: 'França', lat: 48.8566, lon: 2.3522, tz: '+01:00' },
+    reino_unido: { label: 'Reino Unido', lat: 51.5074, lon: -0.1278, tz: '+00:00' },
+    alemanha: { label: 'Alemanha', lat: 52.5200, lon: 13.4050, tz: '+01:00' },
+    italia: { label: 'Itália', lat: 41.9028, lon: 12.4964, tz: '+01:00' },
+    holanda: { label: 'Holanda', lat: 52.3676, lon: 4.9041, tz: '+01:00' },
+    suica: { label: 'Suíça', lat: 46.9480, lon: 7.4474, tz: '+01:00' },
+    irlanda: { label: 'Irlanda', lat: 53.3498, lon: -6.2603, tz: '+00:00' },
+    belgica: { label: 'Bélgica', lat: 50.8503, lon: 4.3517, tz: '+01:00' },
+    suecia: { label: 'Suécia', lat: 59.3293, lon: 18.0686, tz: '+01:00' },
+    noruega: { label: 'Noruega', lat: 59.9139, lon: 10.7522, tz: '+01:00' },
+    grecia: { label: 'Grécia', lat: 37.9838, lon: 23.7275, tz: '+02:00' },
+    russia: { label: 'Rússia', lat: 55.7558, lon: 37.6173, tz: '+03:00' },
+    polonia: { label: 'Polônia', lat: 52.2297, lon: 21.0122, tz: '+01:00' },
+    africa_do_sul: { label: 'África do Sul', lat: -25.7461, lon: 28.1881, tz: '+02:00' },
+    angola: { label: 'Angola', lat: -8.8390, lon: 13.2894, tz: '+01:00' },
+    mocambique: { label: 'Moçambique', lat: -25.9692, lon: 32.5732, tz: '+02:00' },
+    egito: { label: 'Egito', lat: 30.0444, lon: 31.2357, tz: '+02:00' },
+    nigeria: { label: 'Nigéria', lat: 9.0765, lon: 7.3986, tz: '+01:00' },
+    marrocos: { label: 'Marrocos', lat: 34.0209, lon: -6.8416, tz: '+01:00' },
+    japao: { label: 'Japão', lat: 35.6762, lon: 139.6503, tz: '+09:00' },
+    china: { label: 'China', lat: 39.9042, lon: 116.4074, tz: '+08:00' },
+    india: { label: 'Índia', lat: 28.6139, lon: 77.2090, tz: '+05:30' },
+    coreia_do_sul: { label: 'Coreia do Sul', lat: 37.5665, lon: 126.9780, tz: '+09:00' },
+    israel: { label: 'Israel', lat: 31.7683, lon: 35.2137, tz: '+02:00' },
+    emirados_arabes: { label: 'Emirados Árabes Unidos', lat: 24.4539, lon: 54.3773, tz: '+04:00' },
+    tailandia: { label: 'Tailândia', lat: 13.7563, lon: 100.5018, tz: '+07:00' },
+    indonesia: { label: 'Indonésia', lat: -6.2088, lon: 106.8456, tz: '+07:00' },
+    filipinas: { label: 'Filipinas', lat: 14.5995, lon: 120.9842, tz: '+08:00' },
+    vietna: { label: 'Vietnã', lat: 21.0278, lon: 105.8342, tz: '+07:00' },
+    australia: { label: 'Austrália', lat: -35.2809, lon: 149.1300, tz: '+10:00' },
+    nova_zelandia: { label: 'Nova Zelândia', lat: -41.2865, lon: 174.7762, tz: '+12:00' }
+  };
+
+  static TAROT_SLUGS = [
+    '0-louco', '1-mago', '2-sacerdotisa', '3-imperatriz', '4-imperador',
+    '5-hierofante', '6-enamorados', '7-carro', '8-forca', '9-eremita',
+    '10-roda-fortuna', '11-justica', '12-enforcado', '13-morte', '14-temperanca',
+    '15-diabo', '16-torre', '17-estrela', '18-lua', '19-sol',
+    '20-julgamento', '21-mundo'
+  ];
+
+  static ZODIAC_IMAGES = { capricorn: 'zodiac-capricorn.png', sagittarius: 'zodiac-sagittarius.png' };
+
+  componentDidMount() {
+    this.setupFormCanvas();
+    window.addEventListener('resize', this.handleFormResize);
+    this.formRaf = requestAnimationFrame(this.formTick);
+    this.checkSavedSession();
+  }
+
+  async checkSavedSession() {
+    const token = localStorage.getItem('nun_session_token');
+    if (!token) return;
+
+    try {
+      const profile = await this.fetchSavedProfile(token);
+      const patch = { sessionToken: token, view: 'form' };
+      if (profile) {
+        patch.name = profile.name;
+        patch.dob = this.isoToBrDate(profile.birth_date);
+        patch.birthTime = profile.birth_time;
+        patch.country = profile.country;
+        patch.stateBR = profile.state || '';
+        patch.cityBR = profile.city || '';
+        patch.manualLat = String(profile.latitude ?? '');
+        patch.manualLon = String(profile.longitude ?? '');
+        patch.manualTz = profile.timezone || '-03:00';
+      }
+      this.setState(patch);
+    } catch {
+      // token inválido/expirado — apaga e deixa a pessoa logar de novo
+      localStorage.removeItem('nun_session_token');
+    }
+  }
+
+  // Converte "AAAA-MM-DD" (formato salvo) de volta para "DD/MM/AAAA" (formato do campo)
+  isoToBrDate(iso) {
+    const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso || '');
+    if (!match) return '';
+    return `${match[3]}/${match[2]}/${match[1]}`;
+  }
+
+  async fetchSavedProfile(token) {
+    const response = await fetch(Component.PROXY_URL + '/profile', {
+      headers: { 'x-app-token': Component.APP_TOKEN, 'x-session-token': token }
+    });
+    if (!response.ok) throw new Error('Sessão inválida');
+    const data = await response.json();
+    return data.profile;
+  }
+
+  async saveProfile(birthData) {
+    if (!this.state.sessionToken) return;
+    try {
+      await fetch(Component.PROXY_URL + '/profile', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-app-token': Component.APP_TOKEN,
+          'x-session-token': this.state.sessionToken
+        },
+        body: JSON.stringify(birthData)
+      });
+    } catch {
+      // salvar o perfil é um bônus silencioso — se falhar, a leitura já aconteceu normalmente
+    }
+  }
+
+  handleAuthIdentifierChange = (e) => this.setState({ authIdentifier: e.target.value, authError: '' });
+  handleAuthPasswordChange = (e) => this.setState({ authPassword: e.target.value, authError: '' });
+  toggleAuthMode = () => this.setState((s) => ({
+    authMode: s.authMode === 'login' ? 'register' : 'login', authError: ''
+  }));
+
+  handleAuthSubmit = async (e) => {
+    e.preventDefault();
+
+    if (!this.state.authIdentifier.trim() || this.state.authPassword.length < 8) {
+      this.setState({ authError: 'Usuário/email e senha (mínimo 8 caracteres) são obrigatórios.' });
+      return;
+    }
+
+    this.setState({ authLoading: true, authError: '' });
+
+    try {
+      const endpoint = this.state.authMode === 'login' ? '/auth/login' : '/auth/register';
+      const response = await fetch(Component.PROXY_URL + endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-app-token': Component.APP_TOKEN },
+        body: JSON.stringify({
+          identifier: this.state.authIdentifier.trim(),
+          password: this.state.authPassword
+        })
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        this.setState({ authLoading: false, authError: data.error || 'Não foi possível entrar.' });
+        return;
+      }
+
+      localStorage.setItem('nun_session_token', data.token);
+      const profile = await this.fetchSavedProfile(data.token).catch(() => null);
+
+      const patch = { authLoading: false, sessionToken: data.token, view: 'form' };
+      if (profile) {
+        patch.name = profile.name;
+        patch.dob = this.isoToBrDate(profile.birth_date);
+        patch.birthTime = profile.birth_time;
+        patch.country = profile.country;
+        patch.stateBR = profile.state || '';
+        patch.cityBR = profile.city || '';
+        patch.manualLat = String(profile.latitude ?? '');
+        patch.manualLon = String(profile.longitude ?? '');
+        patch.manualTz = profile.timezone || '-03:00';
+      }
+      this.setState(patch);
+    } catch (err) {
+      this.setState({ authLoading: false, authError: 'Erro de conexão. Tente novamente.' });
+    }
+  };
+
+  handleLogout = async () => {
+    try {
+      await fetch(Component.PROXY_URL + '/auth/logout', {
+        method: 'POST',
+        headers: { 'x-app-token': Component.APP_TOKEN, 'x-session-token': this.state.sessionToken }
+      });
+    } catch {}
+    localStorage.removeItem('nun_session_token');
+    this.setState({
+      view: 'auth', sessionToken: '', authIdentifier: '', authPassword: '',
+      name: '', dob: '', birthTime: '', country: '', stateBR: '', cityBR: ''
+    });
+  };
+
+  componentDidUpdate(prevProps, prevState) {
+    if (!prevState) return;
+    if (prevState.view !== this.state.view) {
+      window.scrollTo(0, 0);
+    }
+    if (prevState.view !== 'result' && this.state.view === 'result') {
+      this.setupResultCanvas();
+    }
+    if (prevState.view === 'result' && this.state.view !== 'result' && this.resultRaf) {
+      cancelAnimationFrame(this.resultRaf);
+    }
+  }
+
+  componentWillUnmount() {
+    window.removeEventListener('resize', this.handleFormResize);
+    if (this.formRaf) cancelAnimationFrame(this.formRaf);
+    if (this.resultRaf) cancelAnimationFrame(this.resultRaf);
+    if (this._resultRO) this._resultRO.disconnect();
+  }
+
+  // ---------- Partículas da tela de formulário ----------
+
+  handleFormResize = () => {
+    const canvas = this.formCanvasRef.current;
+    if (!canvas) return;
+    const parent = canvas.parentElement;
+    canvas.width = parent.clientWidth;
+    canvas.height = parent.clientHeight;
+  };
+
+  setupFormCanvas = () => {
+    const canvas = this.formCanvasRef.current;
+    if (!canvas) return;
+    const parent = canvas.parentElement;
+    canvas.width = parent.clientWidth;
+    canvas.height = parent.clientHeight;
+    const count = this.props.particleCount ?? 70;
+    const color = this.props.particleColor ?? '#f0d78c';
+    this.formParticles = Array.from({ length: count }).map(() => this.spawnFormParticle(canvas, true));
+    this.formParticleColor = color;
+  };
+
+  spawnFormParticle(canvas, randomY) {
+    return {
+      x: Math.random() * canvas.width,
+      y: randomY ? Math.random() * canvas.height : canvas.height + 10,
+      r: Math.random() * 1.8 + 0.4,
+      speed: Math.random() * 0.35 + 0.08,
+      drift: (Math.random() - 0.5) * 0.3,
+      alpha: Math.random() * 0.6 + 0.2,
+      twinkle: Math.random() * Math.PI * 2,
+    };
+  }
+
+  formTick = () => {
+    const canvas = this.formCanvasRef.current;
+    if (canvas) {
+      const ctx = canvas.getContext('2d');
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      const color = this.formParticleColor || '#f0d78c';
+      for (const p of this.formParticles) {
+        p.y -= p.speed;
+        p.x += p.drift;
+        p.twinkle += 0.025;
+        if (p.y < -10) Object.assign(p, this.spawnFormParticle(canvas, false));
+        const pulse = (Math.sin(p.twinkle) + 1) / 2;
+        const rNow = p.r * (0.7 + pulse * 0.8);
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, rNow, 0, Math.PI * 2);
+        ctx.fillStyle = color;
+        ctx.globalAlpha = p.alpha * (0.4 + pulse * 0.6);
+        ctx.shadowColor = color;
+        ctx.shadowBlur = 8 + pulse * 10;
+        ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+      ctx.shadowBlur = 0;
+    }
+    this.formRaf = requestAnimationFrame(this.formTick);
+  };
+
+  handleMouseMove = (e) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const nx = (e.clientX - rect.left) / rect.width - 0.5;
+    const ny = (e.clientY - rect.top) / rect.height - 0.5;
+    if (this.bgRef.current) this.bgRef.current.style.transform = `translate(${-nx * 22}px, ${-ny * 18}px) scale(1.03)`;
+    if (this.contentRef.current) this.contentRef.current.style.transform = `translate(${nx * 10}px, ${ny * 8}px)`;
+  };
+
+  // ---------- Partículas + brasas da tela de resultado ----------
+
+  setupResultCanvas = () => {
+    const canvas = this.resultCanvasRef.current;
+    if (!canvas) return;
+    const parent = canvas.parentElement;
+    const resize = () => {
+      canvas.width = parent.clientWidth;
+      canvas.height = parent.scrollHeight;
+    };
+    resize();
+    window.addEventListener('resize', resize);
+    this._resultResize = resize;
+    this._resultRO = new ResizeObserver(resize);
+    this._resultRO.observe(parent);
+    this.resultParticles = Array.from({ length: 70 }).map(() => this.spawnResultParticle(canvas, true, false));
+    this.resultEmbers = Array.from({ length: 22 }).map(() => this.spawnResultParticle(canvas, true, true));
+    this.resultRaf = requestAnimationFrame(this.resultTick);
+  };
+
+  spawnResultParticle(canvas, randomY, isEmber) {
+    return {
+      x: Math.random() * canvas.width,
+      y: randomY ? Math.random() * canvas.height : canvas.height + 10,
+      r: isEmber ? Math.random() * 1.8 + 1.6 : Math.random() * 1.6 + 0.4,
+      speed: isEmber ? Math.random() * 0.18 + 0.05 : Math.random() * 0.3 + 0.06,
+      drift: (Math.random() - 0.5) * (isEmber ? 0.15 : 0.25),
+      sway: Math.random() * Math.PI * 2,
+      alpha: isEmber ? Math.random() * 0.4 + 0.35 : Math.random() * 0.5 + 0.15,
+      twinkle: Math.random() * Math.PI * 2,
+      isEmber,
+    };
+  }
+
+  drawResultParticle(ctx, p) {
+    p.y -= p.speed;
+    p.sway += 0.015;
+    p.x += p.drift + Math.sin(p.sway) * (p.isEmber ? 0.15 : 0.05);
+    p.twinkle += p.isEmber ? 0.015 : 0.025;
+    if (p.y < -12) Object.assign(p, this.spawnResultParticle(ctx.canvas, false, p.isEmber));
+    const pulse = (Math.sin(p.twinkle) + 1) / 2;
+    const rNow = p.r * (0.7 + pulse * 0.8);
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, rNow, 0, Math.PI * 2);
+    ctx.fillStyle = '#e0b25e';
+    ctx.globalAlpha = p.alpha * (0.4 + pulse * 0.6);
+    ctx.shadowColor = '#e0b25e';
+    ctx.shadowBlur = (p.isEmber ? 10 : 5) + pulse * 8;
+    ctx.fill();
+  }
+
+  resultTick = () => {
+    const canvas = this.resultCanvasRef.current;
+    if (canvas) {
+      const ctx = canvas.getContext('2d');
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      for (const p of this.resultParticles) this.drawResultParticle(ctx, p);
+      for (const p of this.resultEmbers) this.drawResultParticle(ctx, p);
+      ctx.globalAlpha = 1;
+      ctx.shadowBlur = 0;
+    }
+    this.resultRaf = requestAnimationFrame(this.resultTick);
+  };
+
+  // ---------- Formulário ----------
+
+  handleNameChange = (e) => this.setState({ name: e.target.value, nameError: false });
+  // Formata automaticamente enquanto digita: 25121993 -> 25/12/1993
+  formatDateAsTyped(digits) {
+    const d = digits.slice(0, 2);
+    const m = digits.slice(2, 4);
+    const y = digits.slice(4, 8);
+    if (digits.length <= 2) return d;
+    if (digits.length <= 4) return `${d}/${m}`;
+    return `${d}/${m}/${y}`;
+  }
+
+  // Formata automaticamente enquanto digita: 1233 -> 12:33
+  formatTimeAsTyped(digits) {
+    const h = digits.slice(0, 2);
+    const m = digits.slice(2, 4);
+    if (digits.length <= 2) return h;
+    return `${h}:${m}`;
+  }
+
+  handleDobChange = (e) => {
+    const digits = e.target.value.replace(/\D/g, '').slice(0, 8);
+    this.setState({ dob: this.formatDateAsTyped(digits), dobError: false });
+  };
+
+  handleTimeChange = (e) => {
+    const digits = e.target.value.replace(/\D/g, '').slice(0, 4);
+    this.setState({ birthTime: this.formatTimeAsTyped(digits), timeError: false });
+  };
+
+  // Converte "DD/MM/AAAA" (o que a pessoa digita) em "AAAA-MM-DD" (o
+  // que o motor espera internamente) — retorna null se a data não for
+  // válida de verdade (dia/mês fora do intervalo, ano implausível,
+  // ou uma data que não existe, como 31/02).
+  parseBrDate(text) {
+    const match = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(text || '');
+    if (!match) return null;
+
+    const day = parseInt(match[1], 10);
+    const month = parseInt(match[2], 10);
+    const year = parseInt(match[3], 10);
+
+    if (month < 1 || month > 12) return null;
+    if (year < 1900 || year > 2100) return null;
+
+    const daysInMonth = new Date(year, month, 0).getDate();
+    if (day < 1 || day > daysInMonth) return null;
+
+    const pad = (n) => String(n).padStart(2, '0');
+    return `${year}-${pad(month)}-${pad(day)}`;
+  }
+
+  // Valida "HH:MM" — retorna true se hora 00-23 e minuto 00-59.
+  isValidTime(text) {
+    const match = /^(\d{2}):(\d{2})$/.exec(text || '');
+    if (!match) return false;
+    const hour = parseInt(match[1], 10);
+    const minute = parseInt(match[2], 10);
+    return hour >= 0 && hour <= 23 && minute >= 0 && minute <= 59;
+  }
+  handleManualLatChange = (e) => this.setState({ manualLat: e.target.value, manualError: false });
+  handleManualLonChange = (e) => this.setState({ manualLon: e.target.value, manualError: false });
+  handleManualTzChange = (e) => this.setState({ manualTz: e.target.value });
+
+  handleCountryChange = (e) => {
+    const country = e.target.value;
+    if (country === 'brasil') {
+      this.setState({
+        country, stateBR: '', cityBR: '', showManualLocation: false,
+        manualLat: '', manualLon: '', manualTz: '-03:00', countryError: false
+      });
+    } else {
+      const c = Component.COUNTRIES[country];
+      this.setState({
+        country, stateBR: '', cityBR: '',
+        showManualLocation: !!country,
+        manualLat: c ? String(c.lat) : '',
+        manualLon: c ? String(c.lon) : '',
+        manualTz: c ? c.tz : '-03:00',
+        countryError: false
+      });
+    }
+  };
+
+  handleStateChange = (e) => {
+    this.setState({ stateBR: e.target.value, cityBR: '', showManualLocation: false, stateError: false });
+  };
+
+  handleCityBRChange = (e) => {
+    const cityBR = e.target.value;
+    const state = window.BRAZIL_STATES[this.state.stateBR];
+    this.setState({
+      cityBR, cityError: false,
+      showManualLocation: cityBR === 'outra',
+      manualTz: state ? state.tz : '-03:00'
+    });
+  };
+
+  handleClose = () => this.setState({ readingError: '', readingLoading: false });
+
+  handleRestart = () => this.setState({
+    view: 'form', sections: [], placements: [], expandedSection: null, hoverIdx: null, openPlacementIdx: null,
+    chatMessages: [], chatInput: '', chatError: '', enneagramAnswers: {}, enneagramError: ''
+  });
+
+  resolveBirthLocation() {
+    if (this.state.country === 'brasil' && this.state.cityBR && this.state.cityBR !== 'outra') {
+      const state = window.BRAZIL_STATES[this.state.stateBR];
+      const city = state.cities[this.state.cityBR];
+      return { city: city.label, state: state.label, country: 'Brasil', latitude: city.lat, longitude: city.lon, timezone: state.tz };
+    }
+    const countryLabel = this.state.country === 'brasil'
+      ? 'Brasil'
+      : (Component.COUNTRIES[this.state.country]?.label || 'Não informado');
+    return {
+      city: 'Não informado',
+      state: this.state.country === 'brasil' ? (window.BRAZIL_STATES[this.state.stateBR]?.label || '') : '',
+      country: countryLabel,
+      latitude: parseFloat(this.state.manualLat),
+      longitude: parseFloat(this.state.manualLon),
+      timezone: this.state.manualTz
+    };
+  }
+
+  async callNunAI(systemPrompt, brief, name) {
+    const response = await fetch(Component.PROXY_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-app-token': Component.APP_TOKEN
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-5', max_tokens: 8192, thinking: { type: 'disabled' }, system: systemPrompt,
+        messages: [{ role: 'user', content: 'Aqui está o material do mapa simbólico integrado de ' + name + '.\n\n' + brief }]
+      })
+    });
+    if (!response.ok) {
+      const bodyText = await response.text().catch(() => '');
+      throw new Error('A IA respondeu com erro (' + response.status + '). ' + bodyText.slice(0, 200));
+    }
+    const data = await response.json();
+    return data.content.filter((b) => b.type === 'text' && b.text).map((b) => b.text).join('\n');
+  }
+
+  async callNunChatAI(systemPrompt, brief, history, question) {
+    const response = await fetch(Component.PROXY_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-app-token': Component.APP_TOKEN
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-5', max_tokens: 2048, thinking: { type: 'disabled' },
+        system: systemPrompt + '\n\n## Material do mapa desta pessoa\n\n' + brief,
+        messages: [...history.map((m) => ({ role: m.role, content: m.text })), { role: 'user', content: question }]
+      })
+    });
+    if (!response.ok) {
+      const bodyText = await response.text().catch(() => '');
+      throw new Error('A IA respondeu com erro (' + response.status + '). ' + bodyText.slice(0, 200));
+    }
+    const data = await response.json();
+    return data.content.filter((b) => b.type === 'text' && b.text).map((b) => b.text).join('\n');
+  }
+
+  parseSections(rawResponse) {
+    const cleaned = rawResponse.trim()
+      .replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/```\s*$/i, '');
+    let parsed;
+    try { parsed = JSON.parse(cleaned); }
+    catch { throw new Error('A IA respondeu num formato inesperado. Tente novamente.'); }
+    if (!parsed || !Array.isArray(parsed.sections) || parsed.sections.length === 0) {
+      throw new Error('A IA não retornou os cartões da leitura. Tente novamente.');
+    }
+    return parsed.sections;
+  }
+
+  handleSubmit = (e) => {
+    e.preventDefault();
+
+    const nameError = !this.state.name.trim();
+    const dobError = !this.parseBrDate(this.state.dob);
+    const timeError = !this.isValidTime(this.state.birthTime);
+    const countryError = !this.state.country;
+    let stateError = false;
+    let cityError = false;
+    let manualError = false;
+
+    if (this.state.country === 'brasil') {
+      stateError = !this.state.stateBR;
+      cityError = !!this.state.stateBR && !this.state.cityBR;
+      if (this.state.cityBR === 'outra') {
+        manualError = isNaN(parseFloat(this.state.manualLat)) || isNaN(parseFloat(this.state.manualLon));
+      }
+    } else if (this.state.country) {
+      manualError = isNaN(parseFloat(this.state.manualLat)) || isNaN(parseFloat(this.state.manualLon));
+    }
+
+    if (nameError || dobError || timeError || countryError || stateError || cityError || manualError) {
+      this.setState({ nameError, dobError, timeError, countryError, stateError, cityError, manualError });
+      return;
+    }
+
+    // Data de nascimento validada — a análise em si só roda depois do
+    // teste de Eneagrama, na próxima tela.
+    this.setState({ view: 'enneagram', errorMessage: '' });
+    setTimeout(() => window.scrollTo(0, 0), 0);
+    setTimeout(() => window.scrollTo(0, 0), 100);
+  };
+
+  handleLikertSelect = (statementId, value) => () => {
+    this.setState((s) => ({
+      enneagramAnswers: { ...s.enneagramAnswers, [statementId]: value },
+      enneagramError: ''
+    }));
+  };
+
+  handleEnneagramSubmit = async () => {
+    const statements = (window.NUN && window.NUN.ENNEAGRAM_STATEMENTS) || [];
+    const answeredIds = Object.keys(this.state.enneagramAnswers);
+
+    if (answeredIds.length < statements.length) {
+      this.setState({ enneagramError: 'Responda todas as afirmações antes de continuar.' });
+      return;
+    }
+
+    this.setState({ loading: true, readingLoading: true, readingError: '', enneagramError: '' });
+
+    try {
+      if (!window.NUN) {
+        throw new Error('O motor NUN não carregou (nun-bundle.js). Verifique se o arquivo está junto do HTML.');
+      }
+      const location = this.resolveBirthLocation();
+      const birthData = {
+        name: this.state.name, birthDate: this.parseBrDate(this.state.dob), birthTime: this.state.birthTime,
+        city: location.city, state: location.state, country: location.country,
+        latitude: location.latitude, longitude: location.longitude, timezone: location.timezone
+      };
+
+      const enneagramAnswers = statements.map((s) => ({
+        statementId: s.id, value: this.state.enneagramAnswers[s.id]
+      }));
+
+      const { brief, placements, engine } = window.NUN.calculateFullProfile(birthData, enneagramAnswers);
+      this.brief = brief;
+      this.engineResult = engine;
+
+      const rawResponse = await this.callNunAI(window.NUN.NUN_STRUCTURED_SYSTEM_PROMPT, brief, this.state.name);
+      const sections = this.parseSections(rawResponse);
+
+      if (this.state.sessionToken) {
+        this.saveProfile(birthData);
+      }
+
+      this.setState({
+        loading: false, readingLoading: false,
+        view: 'result', placements, sections, expandedSection: null
+      });
+      setTimeout(() => window.scrollTo(0, 0), 0);
+      setTimeout(() => window.scrollTo(0, 0), 100);
+    } catch (err) {
+      this.setState({
+        loading: false, readingLoading: false,
+        readingError: (err && err.message) || 'Algo interrompeu a leitura das águas. Tente novamente.'
+      });
+    }
+  };
+
+  // ---------- Ícones da grade de posicionamentos ----------
+
+  textIcon(glyph) {
+    const safe = String(glyph ?? '').slice(0, 3);
+    return `<svg viewBox="0 0 24 24" style="width:100%;height:100%;"><text x="12" y="17" font-size="12" text-anchor="middle" fill="currentColor" font-family="Cinzel, serif" font-weight="600">${safe}</text></svg>`;
+  }
+
+  // Filtro de segurança: caso a IA escolha um emoji colorido mesmo com a
+  // instrução do prompt, isso substitui pelo glifo neutro "✦" — remove
+  // primeiro o seletor de variação FE0F (que força apresentação em
+  // emoji mesmo em símbolos "seguros" como ☯), depois verifica se
+  // restou algum caractere de pictograma colorido (faixa Unicode a
+  // partir de U+1F000, onde vivem quase todos os emojis de objetos/
+  // animais/rostos/natureza), e por fim verifica uma pequena lista de
+  // símbolos que já são coloridos por padrão mesmo fora dessa faixa
+  // (ex.: ⚡ "alta tensão", que renderiza colorido nativamente).
+  static EMOJI_DEFAULT_PRESENTATION = new Set(['⚡', '☀', '⭐', '☔', '☂', '❄', '☁', '⛄', '⛅']);
+
+  sanitizeGlyph(glyph) {
+    const withoutVariationSelector = String(glyph ?? '').replace(/\uFE0F/g, '');
+    const chars = [...withoutVariationSelector];
+    const hasColorfulEmoji = chars.some(
+      (char) => char.codePointAt(0) >= 0x1F000 || Component.EMOJI_DEFAULT_PRESENTATION.has(char)
+    );
+    return hasColorfulEmoji ? '✦' : withoutVariationSelector;
+  }
+
+  buildPlacementIcon(p) {
+    const engine = this.engineResult;
+    if (!engine) return this.textIcon(p.glyph);
+    if (p.system === 'Tarô') {
+      const num = engine.tarot?.spread?.cards?.[0]?.number;
+      const slug = Component.TAROT_SLUGS[num];
+      if (slug) return `<img src="assets/tarot/${slug}.png" style="width:100%;height:100%;object-fit:contain" />`;
+    }
+    if (p.system === 'Astrologia') {
+      const sunSign = engine.astrology?.sun?.sign;
+      const svgIcon = window.ZODIAC_SVG_ICONS && window.ZODIAC_SVG_ICONS[sunSign];
+      if (svgIcon) return svgIcon;
+    }
+    return this.textIcon(p.glyph);
+  }
+
+  // ---------- Interação com cartões e grade ----------
+
+  toggleSection = (i) => this.setState((s) => ({ expandedSection: s.expandedSection === i ? null : i }));
+
+  jumpToSection = (i, anchorId) => (e) => {
+    e.stopPropagation();
+    this.setState({ expandedSection: i });
+    const el = document.getElementById(anchorId);
+    if (el) el.scrollIntoView({ block: 'center' });
+  };
+
+  hoverPlacement = (i) => () => this.setState({ hoverIdx: i });
+  unhoverPlacement = () => this.setState({ hoverIdx: null });
+
+  handleOpenPlacement = (i) => () => this.setState({ openPlacementIdx: i });
+  handleClosePlacement = () => this.setState({ openPlacementIdx: null });
+  stopPropagation = (e) => e.stopPropagation();
+
+  // ---------- Chat de acompanhamento ----------
+
+  handleChatInputChange = (e) => {
+    this.setState({ chatInput: e.target.value });
+    const el = e.target;
+    el.style.height = 'auto';
+    el.style.height = Math.min(el.scrollHeight, 160) + 'px';
+  };
+
+  handleChatKeyDown = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      this.sendChatMessage();
+    }
+  };
+
+  handleChatSend = (e) => {
+    e.preventDefault();
+    this.sendChatMessage();
+  };
+
+  async sendChatMessage() {
+    const question = this.state.chatInput.trim();
+    if (!question || this.state.chatLoading) return;
+
+    this.setState((s) => ({
+      chatMessages: [...s.chatMessages, { role: 'user', text: question }],
+      chatInput: '', chatLoading: true, chatError: ''
+    }));
+    if (this.chatTextareaRef.current) this.chatTextareaRef.current.style.height = 'auto';
+
+    try {
+      const answer = await this.callNunChatAI(window.NUN.NUN_CHAT_SYSTEM_PROMPT, this.brief, this.state.chatMessages, question);
+      this.setState((s) => ({
+        chatMessages: [...s.chatMessages, { role: 'assistant', text: answer }], chatLoading: false
+      }));
+    } catch (err) {
+      this.setState({
+        chatLoading: false,
+        chatError: (err && err.message) || 'Não foi possível obter resposta. Tente novamente.'
+      });
+    }
+  }
+
+  renderVals() {
+    const { expandedSection, hoverIdx } = this.state;
+    const mkTick = (n) => Array.from({ length: n }).map((_, i) => ({ rot: `rotate(${(360 / n) * i} 100 100)` }));
+
+    const stateObj = window.BRAZIL_STATES[this.state.stateBR];
+
+    return {
+      name: this.state.name,
+      dob: this.state.dob,
+      birthTime: this.state.birthTime,
+      country: this.state.country,
+      stateBR: this.state.stateBR,
+      cityBR: this.state.cityBR,
+      isBrazil: this.state.country === 'brasil',
+      nameError: this.state.nameError,
+      dobError: this.state.dobError,
+      timeError: this.state.timeError,
+      countryError: this.state.countryError,
+      stateError: this.state.stateError,
+      cityError: this.state.cityError,
+      manualError: this.state.manualError,
+      showManualLocation: this.state.showManualLocation,
+      manualLat: this.state.manualLat,
+      manualLon: this.state.manualLon,
+      manualTz: this.state.manualTz,
+      errorMessage: this.state.errorMessage,
+      loading: this.state.loading,
+      isAuthView: this.state.view === 'auth',
+      isFormView: this.state.view === 'form',
+      authIdentifier: this.state.authIdentifier,
+      authPassword: this.state.authPassword,
+      authError: this.state.authError,
+      authLoading: this.state.authLoading,
+      authTitle: this.state.authMode === 'login' ? 'ENTRAR' : 'CRIAR CONTA',
+      authButtonText: this.state.authLoading ? 'AGUARDE...' : (this.state.authMode === 'login' ? 'ENTRAR' : 'CRIAR CONTA'),
+      authToggleText: this.state.authMode === 'login' ? 'Ainda não tem conta? Criar uma' : 'Já tem conta? Entrar',
+      handleAuthSubmit: this.handleAuthSubmit,
+      handleAuthIdentifierChange: this.handleAuthIdentifierChange,
+      handleAuthPasswordChange: this.handleAuthPasswordChange,
+      toggleAuthMode: this.toggleAuthMode,
+      handleLogout: this.handleLogout,
+      isEnneagramView: this.state.view === 'enneagram',
+      isResultView: this.state.view === 'result',
+      showLoadingModal: this.state.readingLoading || !!this.state.readingError,
+      readingLoading: this.state.readingLoading,
+      readingError: this.state.readingError,
+      buttonText: this.state.loading ? 'CONSULTANDO...' : (this.props.buttonLabel ?? 'INICIAR ANÁLISE'),
+
+      enneagramQuestions: ((window.NUN && window.NUN.ENNEAGRAM_STATEMENTS) || []).map((s) => ({
+        id: s.id,
+        text: s.text,
+        options: [
+          { value: 1, label: 'Discordo muito' },
+          { value: 2, label: 'Discordo' },
+          { value: 3, label: 'Neutro' },
+          { value: 4, label: 'Concordo' },
+          { value: 5, label: 'Concordo muito' }
+        ].map((opt) => ({
+          label: opt.label,
+          checked: this.state.enneagramAnswers[s.id] === opt.value,
+          onSelect: this.handleLikertSelect(s.id, opt.value)
+        }))
+      })),
+      answeredCount: Object.keys(this.state.enneagramAnswers).length,
+      enneagramError: this.state.enneagramError,
+      enneagramButtonText: this.state.loading ? 'CONSULTANDO...' : 'CONTINUAR PARA A ANÁLISE',
+
+      countryOptions: Object.entries(Component.COUNTRIES)
+        .map(([key, c]) => ({ key, label: c.label }))
+        .sort((a, b) => a.label.localeCompare(b.label)),
+
+      stateOptions: Object.entries(window.BRAZIL_STATES)
+        .map(([key, s]) => ({ key, label: s.label }))
+        .sort((a, b) => a.label.localeCompare(b.label)),
+
+      cityOptions: stateObj
+        ? Object.entries(stateObj.cities).map(([key, c]) => ({ key, label: c.label }))
+        : [],
+
+      mandalaTicks: mkTick(24),
+      mandalaTicksSmall: mkTick(16),
+      mandalaTicks8: mkTick(8),
+
+      placementCards: this.state.placements.map((p, i) => ({
+        ...p,
+        iconHtml: { __html: this.buildPlacementIcon(p) },
+        border: hoverIdx === i ? 'rgba(224,178,94,0.6)' : 'rgba(179,146,90,0.25)',
+        transform: hoverIdx === i ? 'translateY(-3px)' : 'translateY(0)',
+        onEnter: this.hoverPlacement(i),
+        onLeave: this.unhoverPlacement,
+        onOpen: this.handleOpenPlacement(i),
+      })),
+
+      openPlacement: this.state.openPlacementIdx !== null && this.state.placements[this.state.openPlacementIdx]
+        ? {
+            ...this.state.placements[this.state.openPlacementIdx],
+            iconHtml: { __html: this.buildPlacementIcon(this.state.placements[this.state.openPlacementIdx]) }
+          }
+        : null,
+      handleClosePlacement: this.handleClosePlacement,
+      stopPropagation: this.stopPropagation,
+
+      sectionCards: this.state.sections.map((sec, i) => ({
+        ...sec,
+        glyph: this.sanitizeGlyph(sec.glyph),
+        anchorId: `sec-${i}`,
+        expanded: expandedSection === i,
+        maxHeight: expandedSection === i ? '600px' : '0px',
+        toggle: () => this.toggleSection(i),
+        jumpTo: this.jumpToSection(i, `sec-${i}`),
+        arrowTransform: expandedSection === i ? 'rotate(180deg)' : 'rotate(0deg)',
+        borderColor: expandedSection === i ? 'rgba(224,178,94,0.55)' : 'rgba(179,146,90,0.2)',
+        shadow: expandedSection === i ? '0 0 30px rgba(224,178,94,0.08)' : 'none',
+        dotSize: expandedSection === i ? '26px' : '8px',
+        dotColor: expandedSection === i ? '#e0b25e' : 'rgba(179,146,90,0.35)',
+        contentOverflow: expandedSection === i ? 'auto' : 'hidden',
+      })),
+
+      chatMessages: this.state.chatMessages.map((m) => ({
+        text: m.text,
+        align: m.role === 'user' ? 'flex-end' : 'flex-start',
+        bg: m.role === 'user' ? 'rgba(224,178,94,0.12)' : 'rgba(15,19,20,0.6)',
+        border: m.role === 'user' ? 'rgba(224,178,94,0.3)' : 'rgba(179,146,90,0.25)',
+        color: m.role === 'user' ? '#f2d68f' : '#c9bd9f',
+      })),
+      chatInput: this.state.chatInput,
+      chatLoading: this.state.chatLoading,
+      chatError: this.state.chatError,
+      chatSendDisabled: this.state.chatLoading || !this.state.chatInput.trim(),
+      chatSendBg: (this.state.chatLoading || !this.state.chatInput.trim())
+        ? 'rgba(217,180,106,0.25)'
+        : 'linear-gradient(180deg,#f3d98a 0%,#c9982f 100%)',
+
+      handleMouseMove: this.handleMouseMove,
+      handleNameChange: this.handleNameChange,
+      handleDobChange: this.handleDobChange,
+      handleTimeChange: this.handleTimeChange,
+      handleCountryChange: this.handleCountryChange,
+      handleStateChange: this.handleStateChange,
+      handleCityBRChange: this.handleCityBRChange,
+      handleManualLatChange: this.handleManualLatChange,
+      handleManualLonChange: this.handleManualLonChange,
+      handleManualTzChange: this.handleManualTzChange,
+      handleSubmit: this.handleSubmit,
+      handleEnneagramSubmit: this.handleEnneagramSubmit,
+      handleClose: this.handleClose,
+      handleRestart: this.handleRestart,
+      handleChatInputChange: this.handleChatInputChange,
+      handleChatKeyDown: this.handleChatKeyDown,
+      handleChatSend: this.handleChatSend,
+      formCanvasRef: this.formCanvasRef,
+      resultCanvasRef: this.resultCanvasRef,
+      chatTextareaRef: this.chatTextareaRef,
+      bgRef: this.bgRef,
+      contentRef: this.contentRef,
+      btnHoverStyle: { filter: 'brightness(1.08)', boxShadow: '0 8px 30px rgba(201,152,47,0.5)' },
+    };
+  }
+}
+</script>
+</body>
+</html>
