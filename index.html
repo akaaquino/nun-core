@@ -573,20 +573,8 @@ class Component extends DCLogic {
     if (!token) return;
 
     try {
-      const profile = await this.fetchSavedProfile(token);
-      const patch = { sessionToken: token, view: 'form' };
-      if (profile) {
-        patch.name = profile.name;
-        patch.dob = this.isoToBrDate(profile.birth_date);
-        patch.birthTime = profile.birth_time;
-        patch.country = profile.country;
-        patch.stateBR = profile.state || '';
-        patch.cityBR = profile.city || '';
-        patch.manualLat = String(profile.latitude ?? '');
-        patch.manualLon = String(profile.longitude ?? '');
-        patch.manualTz = profile.timezone || '-03:00';
-      }
-      this.setState(patch);
+      const { profile, reading } = await this.fetchSavedProfile(token);
+      this.setState({ sessionToken: token, ...this.buildRestorePatch(profile, reading) });
     } catch {
       // token inválido/expirado — apaga e deixa a pessoa logar de novo
       localStorage.removeItem('nun_session_token');
@@ -605,11 +593,52 @@ class Component extends DCLogic {
       headers: { 'x-app-token': Component.APP_TOKEN, 'x-session-token': token }
     });
     if (!response.ok) throw new Error('Sessão inválida');
-    const data = await response.json();
-    return data.profile;
+    return await response.json(); // { profile, reading }
   }
 
-  async saveProfile(birthData) {
+  // Monta o patch de estado certo dependendo do que já existe salvo:
+  // se já tem uma leitura completa, pula direto pro mapa; se só tem os
+  // dados de nascimento (sem leitura ainda), preenche o formulário.
+  buildRestorePatch(profile, reading) {
+    if (!profile) return { view: 'form' };
+
+    const birthData = {
+      name: profile.name, birthDate: profile.birth_date, birthTime: profile.birth_time,
+      city: profile.city, state: profile.state, country: profile.country,
+      latitude: profile.latitude, longitude: profile.longitude, timezone: profile.timezone
+    };
+
+    const formFields = {
+      name: profile.name,
+      dob: this.isoToBrDate(profile.birth_date),
+      birthTime: profile.birth_time,
+      country: profile.country,
+      stateBR: profile.state || '',
+      cityBR: profile.city || '',
+      manualLat: String(profile.latitude ?? ''),
+      manualLon: String(profile.longitude ?? ''),
+      manualTz: profile.timezone || '-03:00'
+    };
+
+    if (reading && reading.placements && reading.sections) {
+      // recalcula o motor localmente (instantâneo, sem chamar a IA) só
+      // pra ter os dados de que os ícones dos cartões precisam
+      const { engine } = window.NUN.calculateFullProfile(birthData);
+      this.engineResult = engine;
+      this.brief = reading.brief || '';
+      return {
+        ...formFields,
+        view: 'result',
+        placements: reading.placements,
+        sections: reading.sections,
+        expandedSection: null
+      };
+    }
+
+    return { ...formFields, view: 'form' };
+  }
+
+  async saveProfile(birthData, reading) {
     if (!this.state.sessionToken) return;
     try {
       await fetch(Component.PROXY_URL + '/profile', {
@@ -619,7 +648,7 @@ class Component extends DCLogic {
           'x-app-token': Component.APP_TOKEN,
           'x-session-token': this.state.sessionToken
         },
-        body: JSON.stringify(birthData)
+        body: JSON.stringify({ ...birthData, reading })
       });
     } catch {
       // salvar o perfil é um bônus silencioso — se falhar, a leitura já aconteceu normalmente
@@ -660,21 +689,12 @@ class Component extends DCLogic {
       }
 
       localStorage.setItem('nun_session_token', data.token);
-      const profile = await this.fetchSavedProfile(data.token).catch(() => null);
+      const restored = await this.fetchSavedProfile(data.token).catch(() => ({ profile: null, reading: null }));
 
-      const patch = { authLoading: false, sessionToken: data.token, view: 'form' };
-      if (profile) {
-        patch.name = profile.name;
-        patch.dob = this.isoToBrDate(profile.birth_date);
-        patch.birthTime = profile.birth_time;
-        patch.country = profile.country;
-        patch.stateBR = profile.state || '';
-        patch.cityBR = profile.city || '';
-        patch.manualLat = String(profile.latitude ?? '');
-        patch.manualLon = String(profile.longitude ?? '');
-        patch.manualTz = profile.timezone || '-03:00';
-      }
-      this.setState(patch);
+      this.setState({
+        authLoading: false, sessionToken: data.token,
+        ...this.buildRestorePatch(restored.profile, restored.reading)
+      });
     } catch (err) {
       this.setState({ authLoading: false, authError: 'Erro de conexão. Tente novamente.' });
     }
@@ -1180,7 +1200,7 @@ class Component extends DCLogic {
       const sections = this.parseSections(rawResponse);
 
       if (this.state.sessionToken) {
-        this.saveProfile(birthData);
+        this.saveProfile(birthData, { placements, sections, brief });
       }
 
       this.setState({
