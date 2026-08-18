@@ -618,6 +618,7 @@ class Component extends DCLogic {
     try {
       const { profile, reading } = await this.fetchSavedProfile(token);
       this.setState({ sessionToken: token, ...this.buildRestorePatch(profile, reading) });
+      if (reading) this.loadDailyContent();
     } catch {
       // token inválido/expirado — apaga e deixa a pessoa logar de novo
       localStorage.removeItem('nun_session_token');
@@ -738,6 +739,7 @@ class Component extends DCLogic {
         authLoading: false, sessionToken: data.token,
         ...this.buildRestorePatch(restored.profile, restored.reading)
       });
+      if (restored.reading) this.loadDailyContent();
     } catch (err) {
       this.setState({ authLoading: false, authError: 'Erro de conexão. Tente novamente.' });
     }
@@ -755,11 +757,15 @@ class Component extends DCLogic {
   // Foto de perfil puramente decorativa — fica só no navegador da pessoa
   // (localStorage), nunca é enviada ao servidor, nunca é analisada.
   loadDailyContent = () => {
-    if (!window.NUN || !window.NUN.buildDailyContent) return;
+    if (!window.NUN || !window.NUN.buildDailyContent) {
+      console.warn('[NUN] buildDailyContent não está disponível — nun-bundle.js pode estar desatualizado.');
+      return;
+    }
     try {
       const daily = window.NUN.buildDailyContent();
       this.setState({ dailyContent: daily });
     } catch (err) {
+      console.error('[NUN] Falha ao calcular o conteúdo diário:', err);
       // conteúdo diário é um bônus — se falhar, a leitura principal já aconteceu normalmente
     }
   };
@@ -1288,6 +1294,7 @@ class Component extends DCLogic {
         loading: false, readingLoading: false,
         view: 'result', placements, sections, expandedSection: null
       });
+      this.loadDailyContent();
       setTimeout(() => window.scrollTo(0, 0), 0);
       setTimeout(() => window.scrollTo(0, 0), 100);
     } catch (err) {
