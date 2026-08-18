@@ -57809,6 +57809,20 @@
   }
 
   // src/engine/daily/daily-transits.ts
+  var PHASE_NAMES = [
+    "new-moon",
+    "waxing-crescent",
+    "first-quarter",
+    "waxing-gibbous",
+    "full-moon",
+    "waning-gibbous",
+    "last-quarter",
+    "waning-crescent"
+  ];
+  function phaseNameFromAngle(angle) {
+    const index = Math.round(angle / 45) % 8;
+    return PHASE_NAMES[index];
+  }
   function calculateDailyTransits(now = /* @__PURE__ */ new Date()) {
     const year = now.getUTCFullYear();
     const month = now.getUTCMonth() + 1;
@@ -57819,13 +57833,22 @@
     const julianCenturies = calculateJulianCenturies(julianDay);
     const moonPosition = calculateMoonPosition(julianCenturies);
     const moonZodiac = calculateZodiacPosition(moonPosition.longitude);
+    const sunPosition = calculateSunPosition(julianCenturies);
+    const moonPhaseAngle = normalizeDegrees(
+      moonPosition.longitude - sunPosition.longitude
+    );
+    const moonPhaseName = phaseNameFromAngle(moonPhaseAngle);
+    const moonIlluminatedFraction = (1 - Math.cos(moonPhaseAngle * Math.PI / 180)) / 2;
     const pad = (n) => String(n).padStart(2, "0");
     return {
       date: `${year}-${pad(month)}-${pad(day)}`,
       tarotCardId,
       tarotCardNumber,
       moonSign: moonZodiac.sign,
-      moonDegree: moonZodiac.degree
+      moonDegree: moonZodiac.degree,
+      moonPhaseAngle,
+      moonPhaseName,
+      moonIlluminatedFraction
     };
   }
 
@@ -58082,13 +58105,19 @@ Quem est\xE1 perguntando nunca estudou nenhum desses sistemas \u2014 n\xE3o pres
     return {
       date: transits.date,
       card: {
+        number: transits.tarotCardNumber,
+        id: transits.tarotCardId,
         name: cardKnowledge?.name ?? transits.tarotCardId,
         shortDescription: cardKnowledge?.description ? firstSentence(cardKnowledge.description) : ""
       },
       moon: {
+        signId: transits.moonSign,
         sign: moonSignKnowledge?.name ?? transits.moonSign,
         degree: transits.moonDegree,
-        shortDescription: moonSignKnowledge?.description ? firstSentence(moonSignKnowledge.description) : ""
+        shortDescription: moonSignKnowledge?.description ? firstSentence(moonSignKnowledge.description) : "",
+        phaseName: transits.moonPhaseName,
+        phaseAngle: transits.moonPhaseAngle,
+        illuminatedFraction: transits.moonIlluminatedFraction
       }
     };
   }
