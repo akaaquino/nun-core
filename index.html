@@ -349,6 +349,26 @@
       </div>
     </div>
 
+    <!-- SEÇÃO "HOJE" — conteúdo diário, muda todos os dias -->
+    <div style="position:relative;z-index:2;max-width:680px;margin:0 auto 60px;padding:0 24px;">
+      <div style="text-align:center;margin-bottom:18px;">
+        <p style="font-family:'Cinzel',serif;letter-spacing:0.18em;font-size:11px;color:#b3925a;margin:0 0 6px;">O CÉU HOJE — {{ dailyDateLabel }}</p>
+        <p style="font-size:12.5px;color:rgba(226,209,170,0.5);margin:0;">Isso muda todos os dias — volte quando quiser conferir de novo.</p>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div style="background:rgba(15,19,20,0.55);border:1px solid rgba(179,146,90,0.25);border-radius:10px;padding:20px 16px;text-align:center;">
+          <p style="font-size:10px;letter-spacing:0.14em;color:#8a7550;margin:0 0 8px;">CARTA DO DIA</p>
+          <p style="font-family:'Cinzel',serif;font-weight:600;font-size:16px;color:#f0d78c;margin:0 0 10px;">{{ dailyCardName }}</p>
+          <p style="font-size:12.5px;color:#a99a76;line-height:1.5;margin:0;">{{ dailyCardDescription }}</p>
+        </div>
+        <div style="background:rgba(15,19,20,0.55);border:1px solid rgba(179,146,90,0.25);border-radius:10px;padding:20px 16px;text-align:center;">
+          <p style="font-size:10px;letter-spacing:0.14em;color:#8a7550;margin:0 0 8px;">LUA HOJE</p>
+          <p style="font-family:'Cinzel',serif;font-weight:600;font-size:16px;color:#f0d78c;margin:0 0 10px;">{{ dailyMoonSign }}</p>
+          <p style="font-size:12.5px;color:#a99a76;line-height:1.5;margin:0;">{{ dailyMoonDescription }}</p>
+        </div>
+      </div>
+    </div>
+
     <!-- MODAL DE EXPLICAÇÃO DE UM POSICIONAMENTO -->
     <sc-if value="{{ openPlacement }}" hint-placeholder-val="{{ false }}">
       <div onClick="{{ handleClosePlacement }}" style="position:fixed;inset:0;z-index:20;background:rgba(3,5,6,0.85);display:flex;align-items:center;justify-content:center;padding:24px;">
@@ -488,6 +508,7 @@ class Component extends DCLogic {
     authIdentifier: '', authPassword: '', authError: '', authLoading: false,
     sessionToken: '',
     avatarDataUrl: (typeof localStorage !== 'undefined' && localStorage.getItem('nun_avatar')) || '',
+    dailyContent: null,
     enneagramAnswers: {}, enneagramError: '',
     readingLoading: false, readingError: '', errorMessage: '',
     placements: [], sections: [], expandedSection: null, hoverIdx: null, openPlacementIdx: null,
@@ -722,8 +743,27 @@ class Component extends DCLogic {
     }
   };
 
+  formatDailyDate(iso) {
+    const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso || '');
+    if (!match) return '';
+    const meses = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+    const day = parseInt(match[3], 10);
+    const month = meses[parseInt(match[2], 10) - 1];
+    return `${day} de ${month}`;
+  }
+
   // Foto de perfil puramente decorativa — fica só no navegador da pessoa
   // (localStorage), nunca é enviada ao servidor, nunca é analisada.
+  loadDailyContent = () => {
+    if (!window.NUN || !window.NUN.buildDailyContent) return;
+    try {
+      const daily = window.NUN.buildDailyContent();
+      this.setState({ dailyContent: daily });
+    } catch (err) {
+      // conteúdo diário é um bônus — se falhar, a leitura principal já aconteceu normalmente
+    }
+  };
+
   handleAvatarClick = () => {
     if (this.avatarInputRef.current) this.avatarInputRef.current.click();
   };
@@ -767,6 +807,7 @@ class Component extends DCLogic {
     }
     if (prevState.view !== 'result' && this.state.view === 'result') {
       this.setupResultCanvas();
+      this.loadDailyContent();
     }
     if (prevState.view === 'result' && this.state.view !== 'result' && this.resultRaf) {
       cancelAnimationFrame(this.resultRaf);
@@ -1518,6 +1559,11 @@ class Component extends DCLogic {
       authCanvasRef: this.authCanvasRef,
       avatarInputRef: this.avatarInputRef,
       avatarDataUrl: this.state.avatarDataUrl,
+      dailyDateLabel: this.state.dailyContent ? this.formatDailyDate(this.state.dailyContent.date) : '',
+      dailyCardName: this.state.dailyContent?.card?.name ?? '',
+      dailyCardDescription: this.state.dailyContent?.card?.shortDescription ?? '',
+      dailyMoonSign: this.state.dailyContent?.moon?.sign ?? '',
+      dailyMoonDescription: this.state.dailyContent?.moon?.shortDescription ?? '',
       handleAvatarClick: this.handleAvatarClick,
       handleAvatarChange: this.handleAvatarChange,
       authBgRef: this.authBgRef,

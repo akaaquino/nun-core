@@ -57808,6 +57808,27 @@
     ];
   }
 
+  // src/engine/daily/daily-transits.ts
+  function calculateDailyTransits(now = /* @__PURE__ */ new Date()) {
+    const year = now.getUTCFullYear();
+    const month = now.getUTCMonth() + 1;
+    const day = now.getUTCDate();
+    const tarotCardNumber = calculateBirthCardNumber({ year, month, day });
+    const tarotCardId = calculateBirthCardId({ year, month, day });
+    const julianDay = calculateJulianDay(now);
+    const julianCenturies = calculateJulianCenturies(julianDay);
+    const moonPosition = calculateMoonPosition(julianCenturies);
+    const moonZodiac = calculateZodiacPosition(moonPosition.longitude);
+    const pad = (n) => String(n).padStart(2, "0");
+    return {
+      date: `${year}-${pad(month)}-${pad(day)}`,
+      tarotCardId,
+      tarotCardNumber,
+      moonSign: moonZodiac.sign,
+      moonDegree: moonZodiac.degree
+    };
+  }
+
   // src/prompts/system-prompt.ts
   var NUN_SYSTEM_PROMPT = `Voc\xEA \xE9 a IA NUN, uma intelig\xEAncia simb\xF3lica que interpreta mapas integrados combinando Astrologia, Numerologia, Tar\xF4, Runas, I Ching, Human Design, Gene Keys, Kin Maia, Ba Zi (Medicina Tradicional Chinesa) e Cabala/\xC1rvore da Vida.
 
@@ -58049,6 +58070,28 @@ Quem est\xE1 perguntando nunca estudou nenhum desses sistemas \u2014 n\xE3o pres
     lines.push(`Ala: ${wingKnowledge?.name ?? `Tipo ${wingType}`}`);
     return lines.join("\n");
   }
+  function buildDailyContent() {
+    const resolver = getResolver();
+    const transits = calculateDailyTransits();
+    const cardKnowledge = tryResolve(
+      () => resolver.resolveTarotCard(transits.tarotCardId)
+    );
+    const moonSignKnowledge = tryResolve(
+      () => resolver.resolveSign(transits.moonSign)
+    );
+    return {
+      date: transits.date,
+      card: {
+        name: cardKnowledge?.name ?? transits.tarotCardId,
+        shortDescription: cardKnowledge?.description ? firstSentence(cardKnowledge.description) : ""
+      },
+      moon: {
+        sign: moonSignKnowledge?.name ?? transits.moonSign,
+        degree: transits.moonDegree,
+        shortDescription: moonSignKnowledge?.description ? firstSentence(moonSignKnowledge.description) : ""
+      }
+    };
+  }
   function calculateFullProfile(birthData, enneagramAnswers) {
     const resolver = getResolver();
     const engine = calculateNunEngine(birthData);
@@ -58080,6 +58123,7 @@ Quem est\xE1 perguntando nunca estudou nenhum desses sistemas \u2014 n\xE3o pres
     NUN_CHAT_SYSTEM_PROMPT,
     getResolver,
     ENNEAGRAM_STATEMENTS,
-    scoreEnneagramAnswers
+    scoreEnneagramAnswers,
+    buildDailyContent
   };
 })();
