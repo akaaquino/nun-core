@@ -355,21 +355,27 @@
         <p style="font-family:'Cinzel',serif;letter-spacing:0.18em;font-size:11px;color:#b3925a;margin:0 0 6px;">O CÉU HOJE — {{ dailyDateLabel }}</p>
         <p style="font-size:12.5px;color:rgba(226,209,170,0.5);margin:0;">Isso muda todos os dias — volte quando quiser conferir de novo.</p>
       </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-        <div style="background:rgba(15,19,20,0.55);border:1px solid rgba(179,146,90,0.25);border-radius:10px;padding:20px 16px;text-align:center;">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:stretch;">
+        <div style="background:rgba(15,19,20,0.55);border:1px solid rgba(179,146,90,0.25);border-radius:10px;padding:20px 16px;text-align:center;display:flex;flex-direction:column;">
           <p style="font-size:10px;letter-spacing:0.14em;color:#8a7550;margin:0 0 10px;">CARTA DO DIA</p>
-          <img src="{{ dailyCardImageSrc }}" style="width:180px;height:auto;margin:0 auto 16px;border-radius:8px;box-shadow:0 6px 28px rgba(224,178,94,0.2);" alt="{{ dailyCardName }}" />
-          <p style="font-family:'Cinzel',serif;font-weight:600;font-size:16px;color:#f0d78c;margin:0 0 10px;">{{ dailyCardName }}</p>
+          <div style="height:220px;display:flex;align-items:center;justify-content:center;">
+            <img src="{{ dailyCardImageSrc }}" style="max-width:170px;max-height:220px;width:auto;height:auto;border-radius:8px;box-shadow:0 6px 28px rgba(224,178,94,0.2);" alt="{{ dailyCardName }}" />
+          </div>
+          <div style="height:54px;display:flex;align-items:center;justify-content:center;">
+            <p style="font-family:'Cinzel',serif;font-weight:600;font-size:16px;color:#f0d78c;margin:0;">{{ dailyCardName }}</p>
+          </div>
           <p style="font-size:12.5px;color:#a99a76;line-height:1.5;margin:0;">{{ dailyCardDescription }}</p>
         </div>
-        <div style="background:rgba(15,19,20,0.55);border:1px solid rgba(179,146,90,0.25);border-radius:10px;padding:20px 16px;text-align:center;">
+        <div style="background:rgba(15,19,20,0.55);border:1px solid rgba(179,146,90,0.25);border-radius:10px;padding:20px 16px;text-align:center;display:flex;flex-direction:column;">
           <p style="font-size:10px;letter-spacing:0.14em;color:#8a7550;margin:0 0 10px;">LUA HOJE</p>
-          <div style="display:flex;align-items:center;justify-content:center;gap:16px;margin:0 auto 14px;">
-            <div style="width:88px;height:88px;" dangerouslySetInnerHTML="{{ dailyMoonPhaseIconHtml }}"></div>
-            <div style="width:70px;height:70px;color:#e0b25e;" dangerouslySetInnerHTML="{{ dailyMoonSignIconHtml }}"></div>
+          <div style="height:220px;display:flex;align-items:center;justify-content:center;gap:16px;">
+            <div style="width:88px;height:88px;flex:none;" dangerouslySetInnerHTML="{{ dailyMoonPhaseIconHtml }}"></div>
+            <div style="width:70px;height:70px;flex:none;color:#e0b25e;" dangerouslySetInnerHTML="{{ dailyMoonSignIconHtml }}"></div>
           </div>
-          <p style="font-family:'Cinzel',serif;font-weight:600;font-size:16px;color:#f0d78c;margin:0 0 4px;">{{ dailyMoonSign }}</p>
-          <p style="font-size:11px;letter-spacing:0.08em;color:#8a7550;margin:0 0 10px;text-transform:uppercase;">{{ dailyMoonPhaseName }}</p>
+          <div style="height:54px;display:flex;flex-direction:column;align-items:center;justify-content:center;">
+            <p style="font-family:'Cinzel',serif;font-weight:600;font-size:16px;color:#f0d78c;margin:0 0 4px;">{{ dailyMoonSign }}</p>
+            <p style="font-size:11px;letter-spacing:0.08em;color:#8a7550;margin:0;text-transform:uppercase;">{{ dailyMoonPhaseName }}</p>
+          </div>
           <p style="font-size:12.5px;color:#a99a76;line-height:1.5;margin:0;">{{ dailyMoonDescription }}</p>
         </div>
       </div>
