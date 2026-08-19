@@ -515,6 +515,7 @@ class Component extends DCLogic {
     sessionToken: '',
     avatarDataUrl: (typeof localStorage !== 'undefined' && localStorage.getItem('nun_avatar')) || '',
     dailyContent: null,
+    dailyInterpretation: null,
     enneagramAnswers: {}, enneagramError: '',
     readingLoading: false, readingError: '', errorMessage: '',
     placements: [], sections: [], expandedSection: null, hoverIdx: null, openPlacementIdx: null,
@@ -781,11 +782,38 @@ class Component extends DCLogic {
     try {
       const daily = window.NUN.buildDailyContent();
       this.setState({ dailyContent: daily });
+      this.loadDailyInterpretation(daily);
     } catch (err) {
       console.error('[NUN] Falha ao calcular o conteúdo diário:', err);
       // conteúdo diário é um bônus — se falhar, a leitura principal já aconteceu normalmente
     }
   };
+
+  async loadDailyInterpretation(daily) {
+    const cacheKey = 'nun_daily_interpretation_' + daily.date;
+    const cached = localStorage.getItem(cacheKey);
+    if (cached) {
+      try {
+        this.setState({ dailyInterpretation: JSON.parse(cached) });
+        return;
+      } catch {}
+    }
+
+    try {
+      const response = await fetch(Component.PROXY_URL + '/daily-interpretation', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-app-token': Component.APP_TOKEN },
+        body: JSON.stringify({ date: daily.date, card: daily.card, moon: daily.moon })
+      });
+      if (!response.ok) throw new Error('resposta não OK');
+      const interpretation = await response.json();
+      localStorage.setItem(cacheKey, JSON.stringify(interpretation));
+      this.setState({ dailyInterpretation: interpretation });
+    } catch (err) {
+      console.error('[NUN] Falha ao carregar a interpretação diária:', err);
+      // sem interpretação da IA, os fatos brutos (já carregados) continuam aparecendo normalmente
+    }
+  }
 
   handleAvatarClick = () => {
     if (this.avatarInputRef.current) this.avatarInputRef.current.click();
@@ -1608,9 +1636,9 @@ class Component extends DCLogic {
       avatarDataUrl: this.state.avatarDataUrl,
       dailyDateLabel: this.state.dailyContent ? this.formatDailyDate(this.state.dailyContent.date) : '',
       dailyCardName: this.state.dailyContent?.card?.name ?? '',
-      dailyCardDescription: this.state.dailyContent?.card?.shortDescription ?? '',
+      dailyCardDescription: this.state.dailyInterpretation?.cardInterpretation ?? this.state.dailyContent?.card?.shortDescription ?? '',
       dailyMoonSign: this.state.dailyContent?.moon?.sign ?? '',
-      dailyMoonDescription: this.state.dailyContent?.moon?.shortDescription ?? '',
+      dailyMoonDescription: this.state.dailyInterpretation?.moonInterpretation ?? this.state.dailyContent?.moon?.shortDescription ?? '',
       dailyCardImageSrc: this.state.dailyContent?.card
         ? `assets/tarot/${Component.TAROT_SLUGS[this.state.dailyContent.card.number]}.png`
         : '',
