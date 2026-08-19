@@ -1954,6 +1954,132 @@
     };
   }
 
+  // src/engine/vedic/ayanamsa.ts
+  var J2000_JULIAN_DAY = 2451545;
+  var AYANAMSA_AT_J2000 = 23.853222;
+  var PRECESSION_ARCSEC_PER_YEAR = 50.29;
+  var DEGREES_PER_ARCSEC = 1 / 3600;
+  function calculateLahiriAyanamsa(julianDay) {
+    const yearsSinceJ2000 = (julianDay - J2000_JULIAN_DAY) / 365.25;
+    const precessionDegrees = yearsSinceJ2000 * PRECESSION_ARCSEC_PER_YEAR * DEGREES_PER_ARCSEC;
+    return AYANAMSA_AT_J2000 + precessionDegrees;
+  }
+  function tropicalToSidereal(tropicalLongitude, julianDay) {
+    const ayanamsa = calculateLahiriAyanamsa(julianDay);
+    return ((tropicalLongitude - ayanamsa) % 360 + 360) % 360;
+  }
+
+  // src/engine/vedic/nakshatra.ts
+  var NAKSHATRAS = [
+    { id: "ashwini", name: "Ashwini", ruler: "Ketu" },
+    { id: "bharani", name: "Bharani", ruler: "V\xEAnus" },
+    { id: "krittika", name: "Krittika", ruler: "Sol" },
+    { id: "rohini", name: "Rohini", ruler: "Lua" },
+    { id: "mrigashira", name: "Mrigashira", ruler: "Marte" },
+    { id: "ardra", name: "Ardra", ruler: "Rahu" },
+    { id: "punarvasu", name: "Punarvasu", ruler: "J\xFApiter" },
+    { id: "pushya", name: "Pushya", ruler: "Saturno" },
+    { id: "ashlesha", name: "Ashlesha", ruler: "Merc\xFArio" },
+    { id: "magha", name: "Magha", ruler: "Ketu" },
+    { id: "purva-phalguni", name: "Purva Phalguni", ruler: "V\xEAnus" },
+    { id: "uttara-phalguni", name: "Uttara Phalguni", ruler: "Sol" },
+    { id: "hasta", name: "Hasta", ruler: "Lua" },
+    { id: "chitra", name: "Chitra", ruler: "Marte" },
+    { id: "swati", name: "Swati", ruler: "Rahu" },
+    { id: "vishakha", name: "Vishakha", ruler: "J\xFApiter" },
+    { id: "anuradha", name: "Anuradha", ruler: "Saturno" },
+    { id: "jyeshtha", name: "Jyeshtha", ruler: "Merc\xFArio" },
+    { id: "mula", name: "Mula", ruler: "Ketu" },
+    { id: "purva-ashadha", name: "Purva Ashadha", ruler: "V\xEAnus" },
+    { id: "uttara-ashadha", name: "Uttara Ashadha", ruler: "Sol" },
+    { id: "shravana", name: "Shravana", ruler: "Lua" },
+    { id: "dhanishtha", name: "Dhanishtha", ruler: "Marte" },
+    { id: "shatabhisha", name: "Shatabhisha", ruler: "Rahu" },
+    { id: "purva-bhadrapada", name: "Purva Bhadrapada", ruler: "J\xFApiter" },
+    { id: "uttara-bhadrapada", name: "Uttara Bhadrapada", ruler: "Saturno" },
+    { id: "revati", name: "Revati", ruler: "Merc\xFArio" }
+  ];
+  var NAKSHATRA_SPAN_DEGREES = 360 / 27;
+  function nakshatraFromSiderealLongitude(siderealLongitude) {
+    const normalized = (siderealLongitude % 360 + 360) % 360;
+    const index = Math.min(
+      26,
+      Math.floor(normalized / NAKSHATRA_SPAN_DEGREES)
+    );
+    const degreeInNakshatra = normalized - index * NAKSHATRA_SPAN_DEGREES;
+    const padaSpan = NAKSHATRA_SPAN_DEGREES / 4;
+    const pada = Math.min(4, Math.floor(degreeInNakshatra / padaSpan) + 1);
+    const nakshatra = NAKSHATRAS[index];
+    return {
+      index,
+      id: nakshatra.id,
+      name: nakshatra.name,
+      ruler: nakshatra.ruler,
+      pada,
+      degreeInNakshatra
+    };
+  }
+
+  // src/engine/vedic/index.ts
+  function calculateVedic(context) {
+    const moonPosition = calculateMoonPosition(context.julianCenturies);
+    const moonSiderealLongitude = tropicalToSidereal(
+      moonPosition.longitude,
+      context.julianDay
+    );
+    const moonNakshatra = nakshatraFromSiderealLongitude(moonSiderealLongitude);
+    return { moonNakshatra, moonSiderealLongitude };
+  }
+
+  // src/engine/celtic-tree/tree-sign.ts
+  var TREE_SIGN_RANGES = [
+    { id: "birch", startMonth: 12, startDay: 24, endMonth: 1, endDay: 20 },
+    { id: "rowan", startMonth: 1, startDay: 21, endMonth: 2, endDay: 17 },
+    { id: "ash", startMonth: 2, startDay: 18, endMonth: 3, endDay: 17 },
+    { id: "alder", startMonth: 3, startDay: 18, endMonth: 4, endDay: 14 },
+    { id: "willow", startMonth: 4, startDay: 15, endMonth: 5, endDay: 12 },
+    { id: "hawthorn", startMonth: 5, startDay: 13, endMonth: 6, endDay: 9 },
+    { id: "oak", startMonth: 6, startDay: 10, endMonth: 7, endDay: 7 },
+    { id: "holly", startMonth: 7, startDay: 8, endMonth: 8, endDay: 4 },
+    { id: "hazel", startMonth: 8, startDay: 5, endMonth: 9, endDay: 1 },
+    { id: "vine", startMonth: 9, startDay: 2, endMonth: 9, endDay: 29 },
+    { id: "ivy", startMonth: 9, startDay: 30, endMonth: 10, endDay: 27 },
+    { id: "reed", startMonth: 10, startDay: 28, endMonth: 11, endDay: 23 },
+    { id: "elder", startMonth: 11, startDay: 24, endMonth: 12, endDay: 23 }
+  ];
+  function calculateTreeSign(input) {
+    const { month, day } = input;
+    for (const range of TREE_SIGN_RANGES) {
+      if (range.startMonth > range.endMonth) {
+        if (month === range.startMonth && day >= range.startDay || month === range.endMonth && day <= range.endDay) {
+          return range.id;
+        }
+        continue;
+      }
+      if (range.startMonth === range.endMonth) {
+        if (month === range.startMonth && day >= range.startDay && day <= range.endDay) {
+          return range.id;
+        }
+        continue;
+      }
+      const afterStart = month > range.startMonth || month === range.startMonth && day >= range.startDay;
+      const beforeEnd = month < range.endMonth || month === range.endMonth && day <= range.endDay;
+      if (afterStart && beforeEnd) {
+        return range.id;
+      }
+    }
+    throw new Error(`N\xE3o foi poss\xEDvel determinar o signo da \xE1rvore para ${month}/${day}`);
+  }
+
+  // src/engine/celtic-tree/index.ts
+  function calculateCelticTree(context) {
+    const treeId = calculateTreeSign({
+      month: context.components.month,
+      day: context.components.day
+    });
+    return { treeId };
+  }
+
   // src/engine/shared/normalize-birth-data.ts
   function normalizeBirthData(birth) {
     return {
@@ -2457,7 +2583,9 @@
       iching: calculateIChing(context),
       mayaKin: calculateMayaKin(context),
       baZi: calculateBaZi(context),
-      kabbalah: calculateKabbalah(context)
+      kabbalah: calculateKabbalah(context),
+      vedic: calculateVedic(context),
+      treeSign: calculateCelticTree(context)
     };
   }
 
@@ -3215,9 +3343,20 @@
   // src/knowledge/index.ts
   var knowledge_exports = {};
   __export(knowledge_exports, {
+    AlderTree: () => AlderTree,
+    AnuradhaNakshatra: () => AnuradhaNakshatra,
+    ArdraNakshatra: () => ArdraNakshatra,
+    AshTree: () => AshTree,
+    AshleshaNakshatra: () => AshleshaNakshatra,
+    AshwiniNakshatra: () => AshwiniNakshatra,
+    BharaniNakshatra: () => BharaniNakshatra,
     BinahSefirah: () => BinahSefirah,
+    BirchTree: () => BirchTree,
     ChesedSefirah: () => ChesedSefirah,
+    ChitraNakshatra: () => ChitraNakshatra,
     ChokmahSefirah: () => ChokmahSefirah,
+    DhanishthaNakshatra: () => DhanishthaNakshatra,
+    ElderTree: () => ElderTree,
     Enneagram1Type: () => Enneagram1Type,
     Enneagram2Type: () => Enneagram2Type,
     Enneagram3Type: () => Enneagram3Type,
@@ -3229,15 +3368,53 @@
     Enneagram9Type: () => Enneagram9Type,
     GeburahSefirah: () => GeburahSefirah,
     GeneratorType: () => GeneratorType,
+    HastaNakshatra: () => HastaNakshatra,
+    HawthornTree: () => HawthornTree,
+    HazelTree: () => HazelTree,
     HodSefirah: () => HodSefirah,
+    HollyTree: () => HollyTree,
+    IvyTree: () => IvyTree,
+    JyeshthaNakshatra: () => JyeshthaNakshatra,
     KetherSefirah: () => KetherSefirah,
+    KrittikaNakshatra: () => KrittikaNakshatra,
+    MaghaNakshatra: () => MaghaNakshatra,
     MalkuthSefirah: () => MalkuthSefirah,
     ManifestingGeneratorType: () => ManifestingGeneratorType,
     ManifestorType: () => ManifestorType,
+    MrigashiraNakshatra: () => MrigashiraNakshatra,
+    MulaNakshatra: () => MulaNakshatra,
     NetzachSefirah: () => NetzachSefirah,
+    OakTree: () => OakTree,
+    PersonalYear1: () => PersonalYear1,
+    PersonalYear2: () => PersonalYear2,
+    PersonalYear3: () => PersonalYear3,
+    PersonalYear4: () => PersonalYear4,
+    PersonalYear5: () => PersonalYear5,
+    PersonalYear6: () => PersonalYear6,
+    PersonalYear7: () => PersonalYear7,
+    PersonalYear8: () => PersonalYear8,
+    PersonalYear9: () => PersonalYear9,
     ProjectorType: () => ProjectorType,
+    PunarvasuNakshatra: () => PunarvasuNakshatra,
+    PurvaAshadhaNakshatra: () => PurvaAshadhaNakshatra,
+    PurvaBhadrapadaNakshatra: () => PurvaBhadrapadaNakshatra,
+    PurvaPhalguniNakshatra: () => PurvaPhalguniNakshatra,
+    PushyaNakshatra: () => PushyaNakshatra,
+    ReedTree: () => ReedTree,
     ReflectorType: () => ReflectorType,
+    RevatiNakshatra: () => RevatiNakshatra,
+    RohiniNakshatra: () => RohiniNakshatra,
+    RowanTree: () => RowanTree,
+    ShatabhishaNakshatra: () => ShatabhishaNakshatra,
+    ShravanaNakshatra: () => ShravanaNakshatra,
+    SwatiNakshatra: () => SwatiNakshatra,
     TiferetSefirah: () => TiferetSefirah,
+    UttaraAshadhaNakshatra: () => UttaraAshadhaNakshatra,
+    UttaraBhadrapadaNakshatra: () => UttaraBhadrapadaNakshatra,
+    UttaraPhalguniNakshatra: () => UttaraPhalguniNakshatra,
+    VineTree: () => VineTree,
+    VishakhaNakshatra: () => VishakhaNakshatra,
+    WillowTree: () => WillowTree,
     YesodSefirah: () => YesodSefirah,
     air: () => air,
     ajna: () => ajna,
@@ -56803,6 +56980,982 @@
     related: []
   };
 
+  // src/knowledge/vedic/nakshatras/ashwini.ts
+  var AshwiniNakshatra = {
+    id: "ashwini",
+    name: "Ashwini",
+    system: "vedic",
+    category: "nakshatra",
+    description: "Ashwini abre o ciclo das 27 Nakshatras com a energia do come\xE7o instant\xE2neo \u2014 a pressa curativa de quem chega primeiro para socorrer. Associada aos Ashwini Kumaras, os g\xEAmeos m\xE9dicos divinos, e ao s\xEDmbolo da cabe\xE7a de cavalo, representa iniciativa r\xE1pida, capacidade de cura e a coragem de agir sem hesitar diante de uma necessidade urgente. Regida por Ketu, com a divindade os Ashwini Kumaras (g\xEAmeos curandeiros) e o s\xEDmbolo cabe\xE7a de cavalo. Nesta implementa\xE7\xE3o, a Nakshatra \xE9 calculada a partir da posi\xE7\xE3o real da Lua no momento do nascimento, convertida do zod\xEDaco tropical (usado na Astrologia Ocidental) para o zod\xEDaco sideral usado na Astrologia V\xE9dica atrav\xE9s do Ayanamsa Lahiri \u2014 o padr\xE3o oficial adotado pelo Governo da \xCDndia.",
+    keywords: [
+      "velocidade",
+      "cura",
+      "nakshatra",
+      "astrologia vedica",
+      "jyotish",
+      "cabe\xE7a de cavalo"
+    ],
+    symbols: [],
+    references: ["Astrologia V\xE9dica", "Jyotish", "Nakshatra", "Vimshottari"],
+    related: []
+  };
+
+  // src/knowledge/vedic/nakshatras/bharani.ts
+  var BharaniNakshatra = {
+    id: "bharani",
+    name: "Bharani",
+    system: "vedic",
+    category: "nakshatra",
+    description: "Bharani carrega a energia intensa de carregar um fardo at\xE9 o fim \u2014 governada por Yama, o senhor da justi\xE7a e da morte, e simbolizada pelo \xFAtero, representa os processos que n\xE3o podem ser apressados: gesta\xE7\xE3o, disciplina, e a transforma\xE7\xE3o que s\xF3 vem depois de atravessar algo dif\xEDcil por completo. Regida por V\xEAnus, com a divindade Yama, senhor da morte e da justi\xE7a e o s\xEDmbolo a yoni (\xFAtero). Nesta implementa\xE7\xE3o, a Nakshatra \xE9 calculada a partir da posi\xE7\xE3o real da Lua no momento do nascimento, convertida do zod\xEDaco tropical (usado na Astrologia Ocidental) para o zod\xEDaco sideral usado na Astrologia V\xE9dica atrav\xE9s do Ayanamsa Lahiri \u2014 o padr\xE3o oficial adotado pelo Governo da \xCDndia.",
+    keywords: [
+      "disciplina",
+      "transforma\xE7\xE3o",
+      "nakshatra",
+      "astrologia vedica",
+      "jyotish",
+      "a yoni (\xFAtero)"
+    ],
+    symbols: [],
+    references: ["Astrologia V\xE9dica", "Jyotish", "Nakshatra", "Vimshottari"],
+    related: []
+  };
+
+  // src/knowledge/vedic/nakshatras/krittika.ts
+  var KrittikaNakshatra = {
+    id: "krittika",
+    name: "Krittika",
+    system: "vedic",
+    category: "nakshatra",
+    description: "Krittika \xE9 regida por Agni, o fogo, e simbolizada por uma navalha \u2014 representa a energia de cortar com precis\xE3o o que n\xE3o serve mais. \xC9 a Nakshatra da purifica\xE7\xE3o afiada, da cr\xEDtica construtiva e da determina\xE7\xE3o de queimar o sup\xE9rfluo para revelar o que \xE9 essencial. Regida por Sol, com a divindade Agni, o fogo e o s\xEDmbolo a navalha ou chama. Nesta implementa\xE7\xE3o, a Nakshatra \xE9 calculada a partir da posi\xE7\xE3o real da Lua no momento do nascimento, convertida do zod\xEDaco tropical (usado na Astrologia Ocidental) para o zod\xEDaco sideral usado na Astrologia V\xE9dica atrav\xE9s do Ayanamsa Lahiri \u2014 o padr\xE3o oficial adotado pelo Governo da \xCDndia.",
+    keywords: [
+      "nitidez",
+      "purifica\xE7\xE3o",
+      "nakshatra",
+      "astrologia vedica",
+      "jyotish",
+      "a navalha ou chama"
+    ],
+    symbols: [],
+    references: ["Astrologia V\xE9dica", "Jyotish", "Nakshatra", "Vimshottari"],
+    related: []
+  };
+
+  // src/knowledge/vedic/nakshatras/rohini.ts
+  var RohiniNakshatra = {
+    id: "rohini",
+    name: "Rohini",
+    system: "vedic",
+    category: "nakshatra",
+    description: "Rohini, tradicionalmente considerada a esposa favorita da Lua, \xE9 regida por Brahma e simbolizada por uma carro\xE7a carregada de frutos \u2014 representa crescimento f\xE9rtil, sensualidade, beleza material e a capacidade de nutrir algo at\xE9 a plena matura\xE7\xE3o. Regida por Lua, com a divindade Brahma, o criador e o s\xEDmbolo a carro\xE7a puxada por bois. Nesta implementa\xE7\xE3o, a Nakshatra \xE9 calculada a partir da posi\xE7\xE3o real da Lua no momento do nascimento, convertida do zod\xEDaco tropical (usado na Astrologia Ocidental) para o zod\xEDaco sideral usado na Astrologia V\xE9dica atrav\xE9s do Ayanamsa Lahiri \u2014 o padr\xE3o oficial adotado pelo Governo da \xCDndia.",
+    keywords: [
+      "crescimento",
+      "beleza",
+      "nakshatra",
+      "astrologia vedica",
+      "jyotish",
+      "a carro\xE7a puxada por bois"
+    ],
+    symbols: [],
+    references: ["Astrologia V\xE9dica", "Jyotish", "Nakshatra", "Vimshottari"],
+    related: []
+  };
+
+  // src/knowledge/vedic/nakshatras/mrigashira.ts
+  var MrigashiraNakshatra = {
+    id: "mrigashira",
+    name: "Mrigashira",
+    system: "vedic",
+    category: "nakshatra",
+    description: "Mrigashira, a cabe\xE7a do veado, \xE9 regida por Soma e simboliza a busca curiosa e delicada \u2014 o impulso de investigar o mundo com sensibilidade, sempre um pouco inquieto, sempre \xE0 procura da pr\xF3xima descoberta sem nunca se sentir plenamente satisfeito. Regida por Marte, com a divindade Soma, a ess\xEAncia lunar e o s\xEDmbolo a cabe\xE7a de veado. Nesta implementa\xE7\xE3o, a Nakshatra \xE9 calculada a partir da posi\xE7\xE3o real da Lua no momento do nascimento, convertida do zod\xEDaco tropical (usado na Astrologia Ocidental) para o zod\xEDaco sideral usado na Astrologia V\xE9dica atrav\xE9s do Ayanamsa Lahiri \u2014 o padr\xE3o oficial adotado pelo Governo da \xCDndia.",
+    keywords: [
+      "busca gentil",
+      "nakshatra",
+      "astrologia vedica",
+      "jyotish",
+      "a cabe\xE7a de veado"
+    ],
+    symbols: [],
+    references: ["Astrologia V\xE9dica", "Jyotish", "Nakshatra", "Vimshottari"],
+    related: []
+  };
+
+  // src/knowledge/vedic/nakshatras/ardra.ts
+  var ArdraNakshatra = {
+    id: "ardra",
+    name: "Ardra",
+    system: "vedic",
+    category: "nakshatra",
+    description: "Ardra \xE9 regida por Rudra, a divindade da tempestade, e simbolizada por uma l\xE1grima \u2014 representa a ruptura necess\xE1ria, a tormenta emocional que limpa o terreno para um recome\xE7o. \xC9 a Nakshatra de quem transforma a dor em clareza atrav\xE9s da intensidade, n\xE3o apesar dela. Regida por Rahu, com a divindade Rudra, a tempestade e o s\xEDmbolo a l\xE1grima ou gema. Nesta implementa\xE7\xE3o, a Nakshatra \xE9 calculada a partir da posi\xE7\xE3o real da Lua no momento do nascimento, convertida do zod\xEDaco tropical (usado na Astrologia Ocidental) para o zod\xEDaco sideral usado na Astrologia V\xE9dica atrav\xE9s do Ayanamsa Lahiri \u2014 o padr\xE3o oficial adotado pelo Governo da \xCDndia.",
+    keywords: [
+      "tempestade",
+      "renova\xE7\xE3o",
+      "nakshatra",
+      "astrologia vedica",
+      "jyotish",
+      "a l\xE1grima ou gema"
+    ],
+    symbols: [],
+    references: ["Astrologia V\xE9dica", "Jyotish", "Nakshatra", "Vimshottari"],
+    related: []
+  };
+
+  // src/knowledge/vedic/nakshatras/punarvasu.ts
+  var PunarvasuNakshatra = {
+    id: "punarvasu",
+    name: "Punarvasu",
+    system: "vedic",
+    category: "nakshatra",
+    description: "Punarvasu, o retorno da luz, \xE9 regida por Aditi, a m\xE3e c\xF3smica, e simbolizada por uma aljava de flechas \u2014 representa a capacidade de recome\xE7ar depois de uma perda, restaurar o que parecia destru\xEDdo e encontrar seguran\xE7a renovada depois da tempestade. Regida por J\xFApiter, com a divindade Aditi, m\xE3e dos deuses e o s\xEDmbolo a aljava de flechas. Nesta implementa\xE7\xE3o, a Nakshatra \xE9 calculada a partir da posi\xE7\xE3o real da Lua no momento do nascimento, convertida do zod\xEDaco tropical (usado na Astrologia Ocidental) para o zod\xEDaco sideral usado na Astrologia V\xE9dica atrav\xE9s do Ayanamsa Lahiri \u2014 o padr\xE3o oficial adotado pelo Governo da \xCDndia.",
+    keywords: [
+      "retorno",
+      "restaura\xE7\xE3o",
+      "nakshatra",
+      "astrologia vedica",
+      "jyotish",
+      "a aljava de flechas"
+    ],
+    symbols: [],
+    references: ["Astrologia V\xE9dica", "Jyotish", "Nakshatra", "Vimshottari"],
+    related: []
+  };
+
+  // src/knowledge/vedic/nakshatras/pushya.ts
+  var PushyaNakshatra = {
+    id: "pushya",
+    name: "Pushya",
+    system: "vedic",
+    category: "nakshatra",
+    description: "Pushya, considerada uma das Nakshatras mais auspiciosas, \xE9 regida por Brihaspati e simbolizada pelo \xFAbere da vaca \u2014 representa nutri\xE7\xE3o, cuidado, e a capacidade de alimentar e sustentar tanto a si mesmo quanto aos outros com generosidade est\xE1vel. Regida por Saturno, com a divindade Brihaspati, o mestre espiritual e o s\xEDmbolo o \xFAbere da vaca. Nesta implementa\xE7\xE3o, a Nakshatra \xE9 calculada a partir da posi\xE7\xE3o real da Lua no momento do nascimento, convertida do zod\xEDaco tropical (usado na Astrologia Ocidental) para o zod\xEDaco sideral usado na Astrologia V\xE9dica atrav\xE9s do Ayanamsa Lahiri \u2014 o padr\xE3o oficial adotado pelo Governo da \xCDndia.",
+    keywords: [
+      "nutri\xE7\xE3o",
+      "boa fortuna",
+      "nakshatra",
+      "astrologia vedica",
+      "jyotish",
+      "o \xFAbere da vaca"
+    ],
+    symbols: [],
+    references: ["Astrologia V\xE9dica", "Jyotish", "Nakshatra", "Vimshottari"],
+    related: []
+  };
+
+  // src/knowledge/vedic/nakshatras/ashlesha.ts
+  var AshleshaNakshatra = {
+    id: "ashlesha",
+    name: "Ashlesha",
+    system: "vedic",
+    category: "nakshatra",
+    description: "Ashlesha \xE9 regida pelos Nagas, esp\xEDritos-serpente, e simbolizada por uma serpente enrolada \u2014 representa percep\xE7\xE3o agu\xE7ada, magnetismo hipn\xF3tico e a capacidade de enxergar camadas ocultas da realidade que escapam \xE0 maioria das pessoas. Regida por Merc\xFArio, com a divindade os Nagas, serpentes m\xEDsticas e o s\xEDmbolo a serpente enrolada. Nesta implementa\xE7\xE3o, a Nakshatra \xE9 calculada a partir da posi\xE7\xE3o real da Lua no momento do nascimento, convertida do zod\xEDaco tropical (usado na Astrologia Ocidental) para o zod\xEDaco sideral usado na Astrologia V\xE9dica atrav\xE9s do Ayanamsa Lahiri \u2014 o padr\xE3o oficial adotado pelo Governo da \xCDndia.",
+    keywords: [
+      "percep\xE7\xE3o",
+      "intensidade",
+      "nakshatra",
+      "astrologia vedica",
+      "jyotish",
+      "a serpente enrolada"
+    ],
+    symbols: [],
+    references: ["Astrologia V\xE9dica", "Jyotish", "Nakshatra", "Vimshottari"],
+    related: []
+  };
+
+  // src/knowledge/vedic/nakshatras/magha.ts
+  var MaghaNakshatra = {
+    id: "magha",
+    name: "Magha",
+    system: "vedic",
+    category: "nakshatra",
+    description: "Magha, a poderosa, \xE9 regida pelos Pitris, os esp\xEDritos ancestrais, e simbolizada por um trono \u2014 representa autoridade herdada, orgulho de linhagem e a responsabilidade de honrar o legado de quem veio antes enquanto se constr\xF3i o pr\xF3prio reinado. Regida por Ketu, com a divindade os Pitris, os ancestrais e o s\xEDmbolo o trono. Nesta implementa\xE7\xE3o, a Nakshatra \xE9 calculada a partir da posi\xE7\xE3o real da Lua no momento do nascimento, convertida do zod\xEDaco tropical (usado na Astrologia Ocidental) para o zod\xEDaco sideral usado na Astrologia V\xE9dica atrav\xE9s do Ayanamsa Lahiri \u2014 o padr\xE3o oficial adotado pelo Governo da \xCDndia.",
+    keywords: [
+      "ancestralidade",
+      "autoridade",
+      "nakshatra",
+      "astrologia vedica",
+      "jyotish",
+      "o trono"
+    ],
+    symbols: [],
+    references: ["Astrologia V\xE9dica", "Jyotish", "Nakshatra", "Vimshottari"],
+    related: []
+  };
+
+  // src/knowledge/vedic/nakshatras/purva-phalguni.ts
+  var PurvaPhalguniNakshatra = {
+    id: "purva-phalguni",
+    name: "Purva Phalguni",
+    system: "vedic",
+    category: "nakshatra",
+    description: "Purva Phalguni \xE9 regida por Bhaga, a divindade do prazer e da boa sorte, e simbolizada pela frente de uma cama \u2014 representa descanso merecido, criatividade l\xFAdica, romance e a permiss\xE3o de desfrutar da vida sem culpa. Regida por V\xEAnus, com a divindade Bhaga, deus do prazer e o s\xEDmbolo a frente de uma cama. Nesta implementa\xE7\xE3o, a Nakshatra \xE9 calculada a partir da posi\xE7\xE3o real da Lua no momento do nascimento, convertida do zod\xEDaco tropical (usado na Astrologia Ocidental) para o zod\xEDaco sideral usado na Astrologia V\xE9dica atrav\xE9s do Ayanamsa Lahiri \u2014 o padr\xE3o oficial adotado pelo Governo da \xCDndia.",
+    keywords: [
+      "prazer",
+      "descanso",
+      "nakshatra",
+      "astrologia vedica",
+      "jyotish",
+      "a frente de uma cama"
+    ],
+    symbols: [],
+    references: ["Astrologia V\xE9dica", "Jyotish", "Nakshatra", "Vimshottari"],
+    related: []
+  };
+
+  // src/knowledge/vedic/nakshatras/uttara-phalguni.ts
+  var UttaraPhalguniNakshatra = {
+    id: "uttara-phalguni",
+    name: "Uttara Phalguni",
+    system: "vedic",
+    category: "nakshatra",
+    description: "Uttara Phalguni \xE9 regida por Aryaman, divindade das alian\xE7as e dos contratos, e simbolizada pela parte de tr\xE1s de uma cama \u2014 representa parcerias duradouras, generosidade estrutural e o compromisso de cuidar dos v\xEDnculos que sustentam uma comunidade. Regida por Sol, com a divindade Aryaman, deus dos contratos e o s\xEDmbolo a parte de tr\xE1s de uma cama. Nesta implementa\xE7\xE3o, a Nakshatra \xE9 calculada a partir da posi\xE7\xE3o real da Lua no momento do nascimento, convertida do zod\xEDaco tropical (usado na Astrologia Ocidental) para o zod\xEDaco sideral usado na Astrologia V\xE9dica atrav\xE9s do Ayanamsa Lahiri \u2014 o padr\xE3o oficial adotado pelo Governo da \xCDndia.",
+    keywords: [
+      "patronagem",
+      "alian\xE7as",
+      "nakshatra",
+      "astrologia vedica",
+      "jyotish",
+      "a parte de tr\xE1s de uma cama"
+    ],
+    symbols: [],
+    references: ["Astrologia V\xE9dica", "Jyotish", "Nakshatra", "Vimshottari"],
+    related: []
+  };
+
+  // src/knowledge/vedic/nakshatras/hasta.ts
+  var HastaNakshatra = {
+    id: "hasta",
+    name: "Hasta",
+    system: "vedic",
+    category: "nakshatra",
+    description: "Hasta, a m\xE3o, \xE9 regida por Savitar e representa destreza manual, engenhosidade pr\xE1tica e a capacidade de manifestar ideias em algo tang\xEDvel atrav\xE9s do trabalho habilidoso \u2014 \xE9 a Nakshatra do artes\xE3o que transforma inten\xE7\xE3o em objeto. Regida por Lua, com a divindade Savitar, o sol vivificante e o s\xEDmbolo a m\xE3o. Nesta implementa\xE7\xE3o, a Nakshatra \xE9 calculada a partir da posi\xE7\xE3o real da Lua no momento do nascimento, convertida do zod\xEDaco tropical (usado na Astrologia Ocidental) para o zod\xEDaco sideral usado na Astrologia V\xE9dica atrav\xE9s do Ayanamsa Lahiri \u2014 o padr\xE3o oficial adotado pelo Governo da \xCDndia.",
+    keywords: [
+      "habilidade",
+      "of\xEDcio",
+      "nakshatra",
+      "astrologia vedica",
+      "jyotish",
+      "a m\xE3o"
+    ],
+    symbols: [],
+    references: ["Astrologia V\xE9dica", "Jyotish", "Nakshatra", "Vimshottari"],
+    related: []
+  };
+
+  // src/knowledge/vedic/nakshatras/chitra.ts
+  var ChitraNakshatra = {
+    id: "chitra",
+    name: "Chitra",
+    system: "vedic",
+    category: "nakshatra",
+    description: "Chitra \xE9 regida por Vishwakarma, o arquiteto e artes\xE3o dos deuses, e simbolizada por uma joia brilhante \u2014 representa senso est\xE9tico refinado, talento para design e a capacidade de criar algo visualmente impressionante que tamb\xE9m funciona com precis\xE3o. Regida por Marte, com a divindade Vishwakarma, o arquiteto divino e o s\xEDmbolo a joia brilhante. Nesta implementa\xE7\xE3o, a Nakshatra \xE9 calculada a partir da posi\xE7\xE3o real da Lua no momento do nascimento, convertida do zod\xEDaco tropical (usado na Astrologia Ocidental) para o zod\xEDaco sideral usado na Astrologia V\xE9dica atrav\xE9s do Ayanamsa Lahiri \u2014 o padr\xE3o oficial adotado pelo Governo da \xCDndia.",
+    keywords: [
+      "criatividade",
+      "design",
+      "nakshatra",
+      "astrologia vedica",
+      "jyotish",
+      "a joia brilhante"
+    ],
+    symbols: [],
+    references: ["Astrologia V\xE9dica", "Jyotish", "Nakshatra", "Vimshottari"],
+    related: []
+  };
+
+  // src/knowledge/vedic/nakshatras/swati.ts
+  var SwatiNakshatra = {
+    id: "swati",
+    name: "Swati",
+    system: "vedic",
+    category: "nakshatra",
+    description: "Swati \xE9 regida por Vayu, o vento, e simbolizada por uma folha balan\xE7ando ao vento \u2014 representa independ\xEAncia, flexibilidade e a capacidade de se adaptar a qualquer dire\xE7\xE3o sem perder o pr\xF3prio centro, como um junco que dobra mas n\xE3o quebra. Regida por Rahu, com a divindade Vayu, o vento e o s\xEDmbolo a folha de espada ao vento. Nesta implementa\xE7\xE3o, a Nakshatra \xE9 calculada a partir da posi\xE7\xE3o real da Lua no momento do nascimento, convertida do zod\xEDaco tropical (usado na Astrologia Ocidental) para o zod\xEDaco sideral usado na Astrologia V\xE9dica atrav\xE9s do Ayanamsa Lahiri \u2014 o padr\xE3o oficial adotado pelo Governo da \xCDndia.",
+    keywords: [
+      "independ\xEAncia",
+      "movimento",
+      "nakshatra",
+      "astrologia vedica",
+      "jyotish",
+      "a folha de espada ao vento"
+    ],
+    symbols: [],
+    references: ["Astrologia V\xE9dica", "Jyotish", "Nakshatra", "Vimshottari"],
+    related: []
+  };
+
+  // src/knowledge/vedic/nakshatras/vishakha.ts
+  var VishakhaNakshatra = {
+    id: "vishakha",
+    name: "Vishakha",
+    system: "vedic",
+    category: "nakshatra",
+    description: "Vishakha \xE9 regida conjuntamente por Indra e Agni, unindo poder e fogo, e simbolizada por um arco de triunfo \u2014 representa determina\xE7\xE3o focada, ambi\xE7\xE3o direcionada a um objetivo espec\xEDfico e a disposi\xE7\xE3o de perseguir esse objetivo at\xE9 a vit\xF3ria final. Regida por J\xFApiter, com a divindade Indra e Agni, poder e fogo e o s\xEDmbolo o arco de triunfo. Nesta implementa\xE7\xE3o, a Nakshatra \xE9 calculada a partir da posi\xE7\xE3o real da Lua no momento do nascimento, convertida do zod\xEDaco tropical (usado na Astrologia Ocidental) para o zod\xEDaco sideral usado na Astrologia V\xE9dica atrav\xE9s do Ayanamsa Lahiri \u2014 o padr\xE3o oficial adotado pelo Governo da \xCDndia.",
+    keywords: [
+      "prop\xF3sito",
+      "conquista",
+      "nakshatra",
+      "astrologia vedica",
+      "jyotish",
+      "o arco de triunfo"
+    ],
+    symbols: [],
+    references: ["Astrologia V\xE9dica", "Jyotish", "Nakshatra", "Vimshottari"],
+    related: []
+  };
+
+  // src/knowledge/vedic/nakshatras/anuradha.ts
+  var AnuradhaNakshatra = {
+    id: "anuradha",
+    name: "Anuradha",
+    system: "vedic",
+    category: "nakshatra",
+    description: "Anuradha \xE9 regida por Mitra, divindade da amizade e da coopera\xE7\xE3o, e simbolizada pelo l\xF3tus \u2014 representa lealdade profunda, capacidade de construir alian\xE7as duradouras e devo\xE7\xE3o sincera \xE0s pessoas e causas em que se acredita. Regida por Saturno, com a divindade Mitra, deus da amizade e o s\xEDmbolo a flor de l\xF3tus. Nesta implementa\xE7\xE3o, a Nakshatra \xE9 calculada a partir da posi\xE7\xE3o real da Lua no momento do nascimento, convertida do zod\xEDaco tropical (usado na Astrologia Ocidental) para o zod\xEDaco sideral usado na Astrologia V\xE9dica atrav\xE9s do Ayanamsa Lahiri \u2014 o padr\xE3o oficial adotado pelo Governo da \xCDndia.",
+    keywords: [
+      "amizade",
+      "devo\xE7\xE3o",
+      "nakshatra",
+      "astrologia vedica",
+      "jyotish",
+      "a flor de l\xF3tus"
+    ],
+    symbols: [],
+    references: ["Astrologia V\xE9dica", "Jyotish", "Nakshatra", "Vimshottari"],
+    related: []
+  };
+
+  // src/knowledge/vedic/nakshatras/jyeshtha.ts
+  var JyeshthaNakshatra = {
+    id: "jyeshtha",
+    name: "Jyeshtha",
+    system: "vedic",
+    category: "nakshatra",
+    description: "Jyeshtha, a mais velha, \xE9 regida por Indra e simboliza a responsabilidade de quem protege os outros a partir de uma posi\xE7\xE3o de autoridade conquistada \u2014 representa lideran\xE7a protetora, mas tamb\xE9m o peso e o isolamento que \xE0s vezes acompanham essa posi\xE7\xE3o. Regida por Merc\xFArio, com a divindade Indra, rei dos deuses e o s\xEDmbolo o guarda-chuva ou brinco. Nesta implementa\xE7\xE3o, a Nakshatra \xE9 calculada a partir da posi\xE7\xE3o real da Lua no momento do nascimento, convertida do zod\xEDaco tropical (usado na Astrologia Ocidental) para o zod\xEDaco sideral usado na Astrologia V\xE9dica atrav\xE9s do Ayanamsa Lahiri \u2014 o padr\xE3o oficial adotado pelo Governo da \xCDndia.",
+    keywords: [
+      "senioridade",
+      "prote\xE7\xE3o",
+      "nakshatra",
+      "astrologia vedica",
+      "jyotish",
+      "o guarda-chuva ou brinco"
+    ],
+    symbols: [],
+    references: ["Astrologia V\xE9dica", "Jyotish", "Nakshatra", "Vimshottari"],
+    related: []
+  };
+
+  // src/knowledge/vedic/nakshatras/mula.ts
+  var MulaNakshatra = {
+    id: "mula",
+    name: "Mula",
+    system: "vedic",
+    category: "nakshatra",
+    description: "Mula, a raiz, \xE9 regida por Nirriti, divindade da dissolu\xE7\xE3o, e simbolizada por um feixe de ra\xEDzes arrancadas \u2014 representa a disposi\xE7\xE3o de investigar at\xE9 a base de qualquer quest\xE3o, mesmo que isso signifique desmontar estruturas antigas para encontrar a verdade fundamental. Regida por Ketu, com a divindade Nirriti, deusa da dissolu\xE7\xE3o e o s\xEDmbolo ra\xEDzes amarradas. Nesta implementa\xE7\xE3o, a Nakshatra \xE9 calculada a partir da posi\xE7\xE3o real da Lua no momento do nascimento, convertida do zod\xEDaco tropical (usado na Astrologia Ocidental) para o zod\xEDaco sideral usado na Astrologia V\xE9dica atrav\xE9s do Ayanamsa Lahiri \u2014 o padr\xE3o oficial adotado pelo Governo da \xCDndia.",
+    keywords: [
+      "ra\xEDzes",
+      "investiga\xE7\xE3o",
+      "nakshatra",
+      "astrologia vedica",
+      "jyotish",
+      "ra\xEDzes amarradas"
+    ],
+    symbols: [],
+    references: ["Astrologia V\xE9dica", "Jyotish", "Nakshatra", "Vimshottari"],
+    related: []
+  };
+
+  // src/knowledge/vedic/nakshatras/purva-ashadha.ts
+  var PurvaAshadhaNakshatra = {
+    id: "purva-ashadha",
+    name: "Purva Ashadha",
+    system: "vedic",
+    category: "nakshatra",
+    description: "Purva Ashadha \xE9 regida por Apas, a divindade das \xE1guas, e simbolizada por um cesto de aventar gr\xE3os \u2014 representa energia invenc\xEDvel, convic\xE7\xE3o inabal\xE1vel e a capacidade de purificar uma inten\xE7\xE3o at\xE9 que ela se torne pura for\xE7a de vontade. Regida por V\xEAnus, com a divindade Apas, as \xE1guas e o s\xEDmbolo o cesto de aventar gr\xE3os. Nesta implementa\xE7\xE3o, a Nakshatra \xE9 calculada a partir da posi\xE7\xE3o real da Lua no momento do nascimento, convertida do zod\xEDaco tropical (usado na Astrologia Ocidental) para o zod\xEDaco sideral usado na Astrologia V\xE9dica atrav\xE9s do Ayanamsa Lahiri \u2014 o padr\xE3o oficial adotado pelo Governo da \xCDndia.",
+    keywords: [
+      "vigor",
+      "vit\xF3ria inicial",
+      "nakshatra",
+      "astrologia vedica",
+      "jyotish",
+      "o cesto de aventar gr\xE3os"
+    ],
+    symbols: [],
+    references: ["Astrologia V\xE9dica", "Jyotish", "Nakshatra", "Vimshottari"],
+    related: []
+  };
+
+  // src/knowledge/vedic/nakshatras/uttara-ashadha.ts
+  var UttaraAshadhaNakshatra = {
+    id: "uttara-ashadha",
+    name: "Uttara Ashadha",
+    system: "vedic",
+    category: "nakshatra",
+    description: "Uttara Ashadha \xE9 regida pelos Vishwadevas, os deuses universais, e simbolizada pela presa de um elefante \u2014 representa conquistas que perduram, lideran\xE7a \xE9tica e a capacidade de alcan\xE7ar algo que beneficia n\xE3o s\xF3 a si mesmo, mas a um grupo inteiro. Regida por Sol, com a divindade os Vishwadevas, deuses universais e o s\xEDmbolo a presa de elefante. Nesta implementa\xE7\xE3o, a Nakshatra \xE9 calculada a partir da posi\xE7\xE3o real da Lua no momento do nascimento, convertida do zod\xEDaco tropical (usado na Astrologia Ocidental) para o zod\xEDaco sideral usado na Astrologia V\xE9dica atrav\xE9s do Ayanamsa Lahiri \u2014 o padr\xE3o oficial adotado pelo Governo da \xCDndia.",
+    keywords: [
+      "vit\xF3ria duradoura",
+      "nakshatra",
+      "astrologia vedica",
+      "jyotish",
+      "a presa de elefante"
+    ],
+    symbols: [],
+    references: ["Astrologia V\xE9dica", "Jyotish", "Nakshatra", "Vimshottari"],
+    related: []
+  };
+
+  // src/knowledge/vedic/nakshatras/shravana.ts
+  var ShravanaNakshatra = {
+    id: "shravana",
+    name: "Shravana",
+    system: "vedic",
+    category: "nakshatra",
+    description: "Shravana, escutar, \xE9 regida por Vishnu e simbolizada por tr\xEAs pegadas \u2014 representa a capacidade de ouvir profundamente, aprender atrav\xE9s da tradi\xE7\xE3o oral e conectar diferentes pessoas e ideias atrav\xE9s da comunica\xE7\xE3o atenta. Regida por Lua, com a divindade Vishnu, o preservador e o s\xEDmbolo tr\xEAs pegadas. Nesta implementa\xE7\xE3o, a Nakshatra \xE9 calculada a partir da posi\xE7\xE3o real da Lua no momento do nascimento, convertida do zod\xEDaco tropical (usado na Astrologia Ocidental) para o zod\xEDaco sideral usado na Astrologia V\xE9dica atrav\xE9s do Ayanamsa Lahiri \u2014 o padr\xE3o oficial adotado pelo Governo da \xCDndia.",
+    keywords: [
+      "escuta",
+      "aprendizado",
+      "nakshatra",
+      "astrologia vedica",
+      "jyotish",
+      "tr\xEAs pegadas"
+    ],
+    symbols: [],
+    references: ["Astrologia V\xE9dica", "Jyotish", "Nakshatra", "Vimshottari"],
+    related: []
+  };
+
+  // src/knowledge/vedic/nakshatras/dhanishtha.ts
+  var DhanishthaNakshatra = {
+    id: "dhanishtha",
+    name: "Dhanishtha",
+    system: "vedic",
+    category: "nakshatra",
+    description: "Dhanishtha \xE9 regida pelos Vasus, divindades da riqueza material, e simbolizada por um tambor \u2014 representa ritmo, prosperidade conquistada atrav\xE9s de esfor\xE7o coletivo, e a energia contagiante de quem sabe mobilizar um grupo atrav\xE9s de m\xFAsica e celebra\xE7\xE3o. Regida por Marte, com a divindade os Vasus, deuses da abund\xE2ncia e o s\xEDmbolo o tambor. Nesta implementa\xE7\xE3o, a Nakshatra \xE9 calculada a partir da posi\xE7\xE3o real da Lua no momento do nascimento, convertida do zod\xEDaco tropical (usado na Astrologia Ocidental) para o zod\xEDaco sideral usado na Astrologia V\xE9dica atrav\xE9s do Ayanamsa Lahiri \u2014 o padr\xE3o oficial adotado pelo Governo da \xCDndia.",
+    keywords: [
+      "ritmo",
+      "abund\xE2ncia",
+      "nakshatra",
+      "astrologia vedica",
+      "jyotish",
+      "o tambor"
+    ],
+    symbols: [],
+    references: ["Astrologia V\xE9dica", "Jyotish", "Nakshatra", "Vimshottari"],
+    related: []
+  };
+
+  // src/knowledge/vedic/nakshatras/shatabhisha.ts
+  var ShatabhishaNakshatra = {
+    id: "shatabhisha",
+    name: "Shatabhisha",
+    system: "vedic",
+    category: "nakshatra",
+    description: "Shatabhisha, as cem estrelas curadoras, \xE9 regida por Varuna e simbolizada por um c\xEDrculo vazio \u2014 representa cura profunda que acontece em solid\xE3o, capacidade anal\xEDtica agu\xE7ada e conforto com o isolamento necess\xE1rio para processar o que \xE9 vasto demais para ser compreendido rapidamente. Regida por Rahu, com a divindade Varuna, senhor das \xE1guas c\xF3smicas e o s\xEDmbolo o c\xEDrculo vazio. Nesta implementa\xE7\xE3o, a Nakshatra \xE9 calculada a partir da posi\xE7\xE3o real da Lua no momento do nascimento, convertida do zod\xEDaco tropical (usado na Astrologia Ocidental) para o zod\xEDaco sideral usado na Astrologia V\xE9dica atrav\xE9s do Ayanamsa Lahiri \u2014 o padr\xE3o oficial adotado pelo Governo da \xCDndia.",
+    keywords: [
+      "cura",
+      "reclus\xE3o",
+      "nakshatra",
+      "astrologia vedica",
+      "jyotish",
+      "o c\xEDrculo vazio"
+    ],
+    symbols: [],
+    references: ["Astrologia V\xE9dica", "Jyotish", "Nakshatra", "Vimshottari"],
+    related: []
+  };
+
+  // src/knowledge/vedic/nakshatras/purva-bhadrapada.ts
+  var PurvaBhadrapadaNakshatra = {
+    id: "purva-bhadrapada",
+    name: "Purva Bhadrapada",
+    system: "vedic",
+    category: "nakshatra",
+    description: "Purva Bhadrapada \xE9 regida por Aja Ekapada, uma forma feroz e asc\xE9tica do divino, e representa intensidade espiritual, disposi\xE7\xE3o para atravessar transforma\xE7\xF5es radicais e uma vis\xE3o que enxerga al\xE9m do conforto convencional. Regida por J\xFApiter, com a divindade Aja Ekapada, o un\xEDpede e o s\xEDmbolo a frente de um leito funer\xE1rio. Nesta implementa\xE7\xE3o, a Nakshatra \xE9 calculada a partir da posi\xE7\xE3o real da Lua no momento do nascimento, convertida do zod\xEDaco tropical (usado na Astrologia Ocidental) para o zod\xEDaco sideral usado na Astrologia V\xE9dica atrav\xE9s do Ayanamsa Lahiri \u2014 o padr\xE3o oficial adotado pelo Governo da \xCDndia.",
+    keywords: [
+      "intensidade",
+      "vis\xE3o",
+      "nakshatra",
+      "astrologia vedica",
+      "jyotish",
+      "a frente de um leito funer\xE1rio"
+    ],
+    symbols: [],
+    references: ["Astrologia V\xE9dica", "Jyotish", "Nakshatra", "Vimshottari"],
+    related: []
+  };
+
+  // src/knowledge/vedic/nakshatras/uttara-bhadrapada.ts
+  var UttaraBhadrapadaNakshatra = {
+    id: "uttara-bhadrapada",
+    name: "Uttara Bhadrapada",
+    system: "vedic",
+    category: "nakshatra",
+    description: "Uttara Bhadrapada \xE9 regida por Ahir Budhnya, a serpente das profundezas c\xF3smicas, e representa sabedoria silenciosa, for\xE7a interior est\xE1vel e a capacidade de sustentar outras pessoas a partir de uma profundidade que n\xE3o precisa ser exibida. Regida por Saturno, com a divindade Ahir Budhnya, a serpente das profundezas e o s\xEDmbolo a parte de tr\xE1s de um leito funer\xE1rio. Nesta implementa\xE7\xE3o, a Nakshatra \xE9 calculada a partir da posi\xE7\xE3o real da Lua no momento do nascimento, convertida do zod\xEDaco tropical (usado na Astrologia Ocidental) para o zod\xEDaco sideral usado na Astrologia V\xE9dica atrav\xE9s do Ayanamsa Lahiri \u2014 o padr\xE3o oficial adotado pelo Governo da \xCDndia.",
+    keywords: [
+      "profundidade",
+      "sabedoria",
+      "nakshatra",
+      "astrologia vedica",
+      "jyotish",
+      "a parte de tr\xE1s de um leito funer\xE1rio"
+    ],
+    symbols: [],
+    references: ["Astrologia V\xE9dica", "Jyotish", "Nakshatra", "Vimshottari"],
+    related: []
+  };
+
+  // src/knowledge/vedic/nakshatras/revati.ts
+  var RevatiNakshatra = {
+    id: "revati",
+    name: "Revati",
+    system: "vedic",
+    category: "nakshatra",
+    description: "Revati fecha o ciclo das 27 Nakshatras \u2014 regida por Pushan, protetor de viajantes e rebanhos, e simbolizada por um peixe, representa a arte de acompanhar uma jornada at\xE9 seu fim com gentileza, nutrindo os outros ao longo do caminho e preparando a transi\xE7\xE3o suave para o pr\xF3ximo ciclo. Regida por Merc\xFArio, com a divindade Pushan, o protetor de viajantes e o s\xEDmbolo o peixe. Nesta implementa\xE7\xE3o, a Nakshatra \xE9 calculada a partir da posi\xE7\xE3o real da Lua no momento do nascimento, convertida do zod\xEDaco tropical (usado na Astrologia Ocidental) para o zod\xEDaco sideral usado na Astrologia V\xE9dica atrav\xE9s do Ayanamsa Lahiri \u2014 o padr\xE3o oficial adotado pelo Governo da \xCDndia.",
+    keywords: [
+      "conclus\xE3o",
+      "nutri\xE7\xE3o",
+      "nakshatra",
+      "astrologia vedica",
+      "jyotish",
+      "o peixe"
+    ],
+    symbols: [],
+    references: ["Astrologia V\xE9dica", "Jyotish", "Nakshatra", "Vimshottari"],
+    related: []
+  };
+
+  // src/knowledge/celtic-tree/birch.ts
+  var BirchTree = {
+    id: "birch",
+    name: "B\xE9tula (Beith)",
+    system: "celtic-tree",
+    category: "tree-sign",
+    description: 'A B\xE9tula abre o calend\xE1rio Ogham logo ap\xF3s o solst\xEDcio de inverno \u2014 a primeira \xE1rvore a colonizar terrenos devastados, crescendo onde quase nada mais sobrevive. Representa recome\xE7os genu\xEDnos, a coragem de iniciar algo novo em terreno incerto, e a energia purificadora necess\xE1ria para limpar o caminho antes de qualquer constru\xE7\xE3o. No calend\xE1rio Ogham (13 \xE1rvores, cada uma associada a uma letra do antigo alfabeto irland\xEAs), B\xE9tula corresponde ao per\xEDodo de 24/12 a 20/01. Este calend\xE1rio, popularizado no s\xE9culo XX pelo poeta Robert Graves em "A Deusa Branca", tem origem em fontes reais do folclore e da mitologia celta, mas sua forma como sistema de 13 signos ligados a datas de nascimento \xE9 uma s\xEDntese moderna, n\xE3o um hor\xF3scopo pr\xE9-crist\xE3o preservado intacto.',
+    keywords: [
+      "recome\xE7o",
+      "purifica\xE7\xE3o",
+      "arvore celta",
+      "ogham",
+      "calendario celta",
+      "b\xE9tula"
+    ],
+    symbols: [],
+    references: ["Calend\xE1rio Ogham", "Robert Graves", "A Deusa Branca", "Astrologia Celta das \xC1rvores"],
+    related: []
+  };
+
+  // src/knowledge/celtic-tree/rowan.ts
+  var RowanTree = {
+    id: "rowan",
+    name: "Tramazeira (Luis)",
+    system: "celtic-tree",
+    category: "tree-sign",
+    description: 'A Tramazeira, tradicionalmente plantada perto de casas para afastar influ\xEAncias negativas, representa prote\xE7\xE3o instintiva, intui\xE7\xE3o agu\xE7ada e a capacidade de perceber perigos ou oportunidades antes que se tornem \xF3bvios para os outros. No calend\xE1rio Ogham (13 \xE1rvores, cada uma associada a uma letra do antigo alfabeto irland\xEAs), Tramazeira corresponde ao per\xEDodo de 21/01 a 17/02. Este calend\xE1rio, popularizado no s\xE9culo XX pelo poeta Robert Graves em "A Deusa Branca", tem origem em fontes reais do folclore e da mitologia celta, mas sua forma como sistema de 13 signos ligados a datas de nascimento \xE9 uma s\xEDntese moderna, n\xE3o um hor\xF3scopo pr\xE9-crist\xE3o preservado intacto.',
+    keywords: [
+      "prote\xE7\xE3o",
+      "percep\xE7\xE3o",
+      "arvore celta",
+      "ogham",
+      "calendario celta",
+      "tramazeira"
+    ],
+    symbols: [],
+    references: ["Calend\xE1rio Ogham", "Robert Graves", "A Deusa Branca", "Astrologia Celta das \xC1rvores"],
+    related: []
+  };
+
+  // src/knowledge/celtic-tree/ash.ts
+  var AshTree = {
+    id: "ash",
+    name: "Freixo (Nion)",
+    system: "celtic-tree",
+    category: "tree-sign",
+    description: 'O Freixo, associado \xE0 \xE1rvore-mundo Yggdrasil da mitologia n\xF3rdica, tem ra\xEDzes profundas e copa alta \u2014 representa a capacidade de conectar extremos: o que est\xE1 embaixo com o que est\xE1 em cima, o que \xE9 \xEDntimo com o que \xE9 distante. \xC9 a \xE1rvore de quem consegue sustentar m\xFAltiplas perspectivas ao mesmo tempo. No calend\xE1rio Ogham (13 \xE1rvores, cada uma associada a uma letra do antigo alfabeto irland\xEAs), Freixo corresponde ao per\xEDodo de 18/02 a 17/03. Este calend\xE1rio, popularizado no s\xE9culo XX pelo poeta Robert Graves em "A Deusa Branca", tem origem em fontes reais do folclore e da mitologia celta, mas sua forma como sistema de 13 signos ligados a datas de nascimento \xE9 uma s\xEDntese moderna, n\xE3o um hor\xF3scopo pr\xE9-crist\xE3o preservado intacto.',
+    keywords: [
+      "conex\xE3o entre mundos",
+      "arvore celta",
+      "ogham",
+      "calendario celta",
+      "freixo"
+    ],
+    symbols: [],
+    references: ["Calend\xE1rio Ogham", "Robert Graves", "A Deusa Branca", "Astrologia Celta das \xC1rvores"],
+    related: []
+  };
+
+  // src/knowledge/celtic-tree/alder.ts
+  var AlderTree = {
+    id: "alder",
+    name: "Amieiro (Fearn)",
+    system: "celtic-tree",
+    category: "tree-sign",
+    description: 'O Amieiro tem a propriedade rara de endurecer, em vez de apodrecer, quando submerso em \xE1gua \u2014 suas estacas sustentaram as funda\xE7\xF5es de Veneza por s\xE9culos. Representa a capacidade de construir algo est\xE1vel mesmo em terreno inst\xE1vel, e o equil\xEDbrio entre for\xE7a e receptividade. No calend\xE1rio Ogham (13 \xE1rvores, cada uma associada a uma letra do antigo alfabeto irland\xEAs), Amieiro corresponde ao per\xEDodo de 18/03 a 14/04. Este calend\xE1rio, popularizado no s\xE9culo XX pelo poeta Robert Graves em "A Deusa Branca", tem origem em fontes reais do folclore e da mitologia celta, mas sua forma como sistema de 13 signos ligados a datas de nascimento \xE9 uma s\xEDntese moderna, n\xE3o um hor\xF3scopo pr\xE9-crist\xE3o preservado intacto.',
+    keywords: [
+      "equil\xEDbrio",
+      "sustenta\xE7\xE3o",
+      "arvore celta",
+      "ogham",
+      "calendario celta",
+      "amieiro"
+    ],
+    symbols: [],
+    references: ["Calend\xE1rio Ogham", "Robert Graves", "A Deusa Branca", "Astrologia Celta das \xC1rvores"],
+    related: []
+  };
+
+  // src/knowledge/celtic-tree/willow.ts
+  var WillowTree = {
+    id: "willow",
+    name: "Salgueiro (Saille)",
+    system: "celtic-tree",
+    category: "tree-sign",
+    description: 'O Salgueiro cresce junto \xE0 \xE1gua e se dobra com o vento sem quebrar \u2014 representa flexibilidade emocional, intui\xE7\xE3o ligada aos ciclos lunares, e a sabedoria de ceder quando resistir seria in\xFAtil, sem nunca perder as pr\xF3prias ra\xEDzes. No calend\xE1rio Ogham (13 \xE1rvores, cada uma associada a uma letra do antigo alfabeto irland\xEAs), Salgueiro corresponde ao per\xEDodo de 15/04 a 12/05. Este calend\xE1rio, popularizado no s\xE9culo XX pelo poeta Robert Graves em "A Deusa Branca", tem origem em fontes reais do folclore e da mitologia celta, mas sua forma como sistema de 13 signos ligados a datas de nascimento \xE9 uma s\xEDntese moderna, n\xE3o um hor\xF3scopo pr\xE9-crist\xE3o preservado intacto.',
+    keywords: [
+      "flexibilidade",
+      "intui\xE7\xE3o",
+      "arvore celta",
+      "ogham",
+      "calendario celta",
+      "salgueiro"
+    ],
+    symbols: [],
+    references: ["Calend\xE1rio Ogham", "Robert Graves", "A Deusa Branca", "Astrologia Celta das \xC1rvores"],
+    related: []
+  };
+
+  // src/knowledge/celtic-tree/hawthorn.ts
+  var HawthornTree = {
+    id: "hawthorn",
+    name: "Pilriteiro (Uath)",
+    system: "celtic-tree",
+    category: "tree-sign",
+    description: 'O Pilriteiro, associado ao mundo fe\xE9rico nas tradi\xE7\xF5es celtas, marca tradicionalmente limiares \u2014 o ponto entre um estado e outro. Representa prote\xE7\xE3o do cora\xE7\xE3o, energia decisiva nos neg\xF3cios e relacionamentos, e a sensa\xE7\xE3o de estar num limiar prestes a atravessar para algo novo. No calend\xE1rio Ogham (13 \xE1rvores, cada uma associada a uma letra do antigo alfabeto irland\xEAs), Pilriteiro corresponde ao per\xEDodo de 13/05 a 09/06. Este calend\xE1rio, popularizado no s\xE9culo XX pelo poeta Robert Graves em "A Deusa Branca", tem origem em fontes reais do folclore e da mitologia celta, mas sua forma como sistema de 13 signos ligados a datas de nascimento \xE9 uma s\xEDntese moderna, n\xE3o um hor\xF3scopo pr\xE9-crist\xE3o preservado intacto.',
+    keywords: [
+      "limiar",
+      "prote\xE7\xE3o do cora\xE7\xE3o",
+      "arvore celta",
+      "ogham",
+      "calendario celta",
+      "pilriteiro"
+    ],
+    symbols: [],
+    references: ["Calend\xE1rio Ogham", "Robert Graves", "A Deusa Branca", "Astrologia Celta das \xC1rvores"],
+    related: []
+  };
+
+  // src/knowledge/celtic-tree/oak.ts
+  var OakTree = {
+    id: "oak",
+    name: "Carvalho (Duir)",
+    system: "celtic-tree",
+    category: "tree-sign",
+    description: 'O Carvalho, sagrado para os druidas e associado \xE0 pr\xF3pria raiz da palavra druida, \xE9 a \xE1rvore da for\xE7a duradoura e da lideran\xE7a que protege quem est\xE1 ao redor. Representa resist\xEAncia, integridade inabal\xE1vel e a capacidade de ser um ponto de apoio confi\xE1vel para os outros. No calend\xE1rio Ogham (13 \xE1rvores, cada uma associada a uma letra do antigo alfabeto irland\xEAs), Carvalho corresponde ao per\xEDodo de 10/06 a 07/07. Este calend\xE1rio, popularizado no s\xE9culo XX pelo poeta Robert Graves em "A Deusa Branca", tem origem em fontes reais do folclore e da mitologia celta, mas sua forma como sistema de 13 signos ligados a datas de nascimento \xE9 uma s\xEDntese moderna, n\xE3o um hor\xF3scopo pr\xE9-crist\xE3o preservado intacto.',
+    keywords: [
+      "for\xE7a",
+      "lideran\xE7a",
+      "arvore celta",
+      "ogham",
+      "calendario celta",
+      "carvalho"
+    ],
+    symbols: [],
+    references: ["Calend\xE1rio Ogham", "Robert Graves", "A Deusa Branca", "Astrologia Celta das \xC1rvores"],
+    related: []
+  };
+
+  // src/knowledge/celtic-tree/holly.ts
+  var HollyTree = {
+    id: "holly",
+    name: "Azevinho (Tinne)",
+    system: "celtic-tree",
+    category: "tree-sign",
+    description: 'O Azevinho, que permanece verde mesmo no inverno mais rigoroso, representa coragem que n\xE3o depende de circunst\xE2ncias favor\xE1veis, disposi\xE7\xE3o para o confronto necess\xE1rio e a energia de quem age decisivamente quando a situa\xE7\xE3o exige. No calend\xE1rio Ogham (13 \xE1rvores, cada uma associada a uma letra do antigo alfabeto irland\xEAs), Azevinho corresponde ao per\xEDodo de 08/07 a 04/08. Este calend\xE1rio, popularizado no s\xE9culo XX pelo poeta Robert Graves em "A Deusa Branca", tem origem em fontes reais do folclore e da mitologia celta, mas sua forma como sistema de 13 signos ligados a datas de nascimento \xE9 uma s\xEDntese moderna, n\xE3o um hor\xF3scopo pr\xE9-crist\xE3o preservado intacto.',
+    keywords: [
+      "coragem",
+      "a\xE7\xE3o decisiva",
+      "arvore celta",
+      "ogham",
+      "calendario celta",
+      "azevinho"
+    ],
+    symbols: [],
+    references: ["Calend\xE1rio Ogham", "Robert Graves", "A Deusa Branca", "Astrologia Celta das \xC1rvores"],
+    related: []
+  };
+
+  // src/knowledge/celtic-tree/hazel.ts
+  var HazelTree = {
+    id: "hazel",
+    name: "Aveleira (Coll)",
+    system: "celtic-tree",
+    category: "tree-sign",
+    description: 'A Aveleira, associada na mitologia celta ao po\xE7o da sabedoria cercado por nove avel\xE3s de conhecimento, representa intui\xE7\xE3o criativa, sabedoria acumulada atrav\xE9s da experi\xEAncia e a capacidade de captar insights que parecem vir de uma fonte mais profunda que o racioc\xEDnio comum. No calend\xE1rio Ogham (13 \xE1rvores, cada uma associada a uma letra do antigo alfabeto irland\xEAs), Aveleira corresponde ao per\xEDodo de 05/08 a 01/09. Este calend\xE1rio, popularizado no s\xE9culo XX pelo poeta Robert Graves em "A Deusa Branca", tem origem em fontes reais do folclore e da mitologia celta, mas sua forma como sistema de 13 signos ligados a datas de nascimento \xE9 uma s\xEDntese moderna, n\xE3o um hor\xF3scopo pr\xE9-crist\xE3o preservado intacto.',
+    keywords: [
+      "sabedoria",
+      "intui\xE7\xE3o criativa",
+      "arvore celta",
+      "ogham",
+      "calendario celta",
+      "aveleira"
+    ],
+    symbols: [],
+    references: ["Calend\xE1rio Ogham", "Robert Graves", "A Deusa Branca", "Astrologia Celta das \xC1rvores"],
+    related: []
+  };
+
+  // src/knowledge/celtic-tree/vine.ts
+  var VineTree = {
+    id: "vine",
+    name: "Videira (Muin)",
+    system: "celtic-tree",
+    category: "tree-sign",
+    description: 'A Videira, cujos frutos se transformam atrav\xE9s da fermenta\xE7\xE3o, representa introspec\xE7\xE3o profunda, a capacidade de extrair significado de experi\xEAncias passadas, e a transforma\xE7\xE3o interior que s\xF3 acontece com tempo e paci\xEAncia \u2014 nada aqui pode ser apressado. No calend\xE1rio Ogham (13 \xE1rvores, cada uma associada a uma letra do antigo alfabeto irland\xEAs), Videira corresponde ao per\xEDodo de 02/09 a 29/09. Este calend\xE1rio, popularizado no s\xE9culo XX pelo poeta Robert Graves em "A Deusa Branca", tem origem em fontes reais do folclore e da mitologia celta, mas sua forma como sistema de 13 signos ligados a datas de nascimento \xE9 uma s\xEDntese moderna, n\xE3o um hor\xF3scopo pr\xE9-crist\xE3o preservado intacto.',
+    keywords: [
+      "introspec\xE7\xE3o",
+      "transforma\xE7\xE3o interior",
+      "arvore celta",
+      "ogham",
+      "calendario celta",
+      "videira"
+    ],
+    symbols: [],
+    references: ["Calend\xE1rio Ogham", "Robert Graves", "A Deusa Branca", "Astrologia Celta das \xC1rvores"],
+    related: []
+  };
+
+  // src/knowledge/celtic-tree/ivy.ts
+  var IvyTree = {
+    id: "ivy",
+    name: "Hera (Gort)",
+    system: "celtic-tree",
+    category: "tree-sign",
+    description: 'A Hera, que se agarra e cresce continuamente mesmo em superf\xEDcies dif\xEDceis, representa determina\xE7\xE3o silenciosa, lealdade duradoura e a capacidade de persistir e se desenvolver mesmo quando o crescimento n\xE3o \xE9 imediatamente vis\xEDvel para os outros. No calend\xE1rio Ogham (13 \xE1rvores, cada uma associada a uma letra do antigo alfabeto irland\xEAs), Hera corresponde ao per\xEDodo de 30/09 a 27/10. Este calend\xE1rio, popularizado no s\xE9culo XX pelo poeta Robert Graves em "A Deusa Branca", tem origem em fontes reais do folclore e da mitologia celta, mas sua forma como sistema de 13 signos ligados a datas de nascimento \xE9 uma s\xEDntese moderna, n\xE3o um hor\xF3scopo pr\xE9-crist\xE3o preservado intacto.',
+    keywords: [
+      "determina\xE7\xE3o",
+      "crescimento persistente",
+      "arvore celta",
+      "ogham",
+      "calendario celta",
+      "hera"
+    ],
+    symbols: [],
+    references: ["Calend\xE1rio Ogham", "Robert Graves", "A Deusa Branca", "Astrologia Celta das \xC1rvores"],
+    related: []
+  };
+
+  // src/knowledge/celtic-tree/reed.ts
+  var ReedTree = {
+    id: "reed",
+    name: "Junco (Ngetal)",
+    system: "celtic-tree",
+    category: "tree-sign",
+    description: 'O Junco, tradicionalmente usado para fazer flautas e setas, representa comunica\xE7\xE3o direta, a capacidade de apontar uma dire\xE7\xE3o clara mesmo em meio \xE0 confus\xE3o, e a cura que vem de dizer e ouvir a verdade sem rodeios. No calend\xE1rio Ogham (13 \xE1rvores, cada uma associada a uma letra do antigo alfabeto irland\xEAs), Junco corresponde ao per\xEDodo de 28/10 a 23/11. Este calend\xE1rio, popularizado no s\xE9culo XX pelo poeta Robert Graves em "A Deusa Branca", tem origem em fontes reais do folclore e da mitologia celta, mas sua forma como sistema de 13 signos ligados a datas de nascimento \xE9 uma s\xEDntese moderna, n\xE3o um hor\xF3scopo pr\xE9-crist\xE3o preservado intacto.',
+    keywords: [
+      "dire\xE7\xE3o",
+      "cura atrav\xE9s da verdade",
+      "arvore celta",
+      "ogham",
+      "calendario celta",
+      "junco"
+    ],
+    symbols: [],
+    references: ["Calend\xE1rio Ogham", "Robert Graves", "A Deusa Branca", "Astrologia Celta das \xC1rvores"],
+    related: []
+  };
+
+  // src/knowledge/celtic-tree/elder.ts
+  var ElderTree = {
+    id: "elder",
+    name: "Sabugueiro (Ruis)",
+    system: "celtic-tree",
+    category: "tree-sign",
+    description: 'O Sabugueiro fecha o calend\xE1rio Ogham logo antes do solst\xEDcio de inverno, marcando tradicionalmente finais e come\xE7os \u2014 representa a sabedoria de encerrar ciclos completamente antes de iniciar o pr\xF3ximo, e a aceita\xE7\xE3o de que todo fim cont\xE9m, em si, a semente de uma renova\xE7\xE3o. No calend\xE1rio Ogham (13 \xE1rvores, cada uma associada a uma letra do antigo alfabeto irland\xEAs), Sabugueiro corresponde ao per\xEDodo de 24/11 a 23/12. Este calend\xE1rio, popularizado no s\xE9culo XX pelo poeta Robert Graves em "A Deusa Branca", tem origem em fontes reais do folclore e da mitologia celta, mas sua forma como sistema de 13 signos ligados a datas de nascimento \xE9 uma s\xEDntese moderna, n\xE3o um hor\xF3scopo pr\xE9-crist\xE3o preservado intacto.',
+    keywords: [
+      "fechamento de ciclos",
+      "renova\xE7\xE3o",
+      "arvore celta",
+      "ogham",
+      "calendario celta",
+      "sabugueiro"
+    ],
+    symbols: [],
+    references: ["Calend\xE1rio Ogham", "Robert Graves", "A Deusa Branca", "Astrologia Celta das \xC1rvores"],
+    related: []
+  };
+
+  // src/knowledge/numerology/personal-year/personal-year-1.ts
+  var PersonalYear1 = {
+    id: "personal-year-1",
+    name: "Ano Pessoal 1",
+    system: "numerology",
+    category: "personal-year",
+    description: "O Ano Pessoal 1 abre um ciclo novo de nove anos \u2014 \xE9 o momento de plantar sementes, iniciar projetos e assumir a lideran\xE7a da pr\xF3pria dire\xE7\xE3o. A energia favorece independ\xEAncia, coragem para come\xE7ar algo do zero, e decis\xF5es que definem o tom dos anos seguintes. N\xE3o \xE9 ano de esperar por permiss\xE3o; \xE9 ano de dar o primeiro passo. Diferente do Caminho de Vida (fixo desde o nascimento), o Ano Pessoal muda todo ano, calculado a partir do m\xEAs e dia de nascimento somados ao ano corrente \u2014 descreve o tema do ciclo anual em curso, n\xE3o um arqu\xE9tipo de vida inteira.",
+    keywords: [
+      "novos come\xE7os",
+      "ano pessoal",
+      "ciclo numerologico",
+      "numerologia"
+    ],
+    symbols: [],
+    number: 1,
+    references: ["Numerologia Pitag\xF3rica", "Ciclo de 9 anos"],
+    related: []
+  };
+
+  // src/knowledge/numerology/personal-year/personal-year-2.ts
+  var PersonalYear2 = {
+    id: "personal-year-2",
+    name: "Ano Pessoal 2",
+    system: "numerology",
+    category: "personal-year",
+    description: "O Ano Pessoal 2 pede o oposto do impulso inicial do ano anterior: paci\xEAncia, coopera\xE7\xE3o e aten\xE7\xE3o aos detalhes das rela\xE7\xF5es. \xC9 um per\xEDodo de construir parcerias, cultivar diplomacia e deixar as coisas amadurecerem no pr\xF3prio ritmo, mesmo quando a vontade \xE9 acelerar. Decis\xF5es importantes tendem a se beneficiar de mais escuta e menos pressa. Diferente do Caminho de Vida (fixo desde o nascimento), o Ano Pessoal muda todo ano, calculado a partir do m\xEAs e dia de nascimento somados ao ano corrente \u2014 descreve o tema do ciclo anual em curso, n\xE3o um arqu\xE9tipo de vida inteira.",
+    keywords: [
+      "coopera\xE7\xE3o",
+      "paci\xEAncia",
+      "ano pessoal",
+      "ciclo numerologico",
+      "numerologia"
+    ],
+    symbols: [],
+    number: 2,
+    references: ["Numerologia Pitag\xF3rica", "Ciclo de 9 anos"],
+    related: []
+  };
+
+  // src/knowledge/numerology/personal-year/personal-year-3.ts
+  var PersonalYear3 = {
+    id: "personal-year-3",
+    name: "Ano Pessoal 3",
+    system: "numerology",
+    category: "personal-year",
+    description: "O Ano Pessoal 3 traz uma energia mais leve e expressiva depois da introspec\xE7\xE3o do ano anterior \u2014 favorece comunica\xE7\xE3o, criatividade, vida social e a vontade de compartilhar o que foi constru\xEDdo nos dois anos anteriores. \xC9 um bom per\xEDodo para projetos criativos, mas tamb\xE9m um convite a n\xE3o se dispersar em compromissos demais. Diferente do Caminho de Vida (fixo desde o nascimento), o Ano Pessoal muda todo ano, calculado a partir do m\xEAs e dia de nascimento somados ao ano corrente \u2014 descreve o tema do ciclo anual em curso, n\xE3o um arqu\xE9tipo de vida inteira.",
+    keywords: [
+      "express\xE3o",
+      "expans\xE3o social",
+      "ano pessoal",
+      "ciclo numerologico",
+      "numerologia"
+    ],
+    symbols: [],
+    number: 3,
+    references: ["Numerologia Pitag\xF3rica", "Ciclo de 9 anos"],
+    related: []
+  };
+
+  // src/knowledge/numerology/personal-year/personal-year-4.ts
+  var PersonalYear4 = {
+    id: "personal-year-4",
+    name: "Ano Pessoal 4",
+    system: "numerology",
+    category: "personal-year",
+    description: "O Ano Pessoal 4 pede disciplina e constru\xE7\xE3o de base s\xF3lida \u2014 \xE9 o ano de organizar, planejar a longo prazo e colocar estruturas dur\xE1veis no lugar, mesmo que o processo pare\xE7a lento ou pouco glamoroso. O que \xE9 constru\xEDdo com cuidado neste ano tende a sustentar os ciclos seguintes. Diferente do Caminho de Vida (fixo desde o nascimento), o Ano Pessoal muda todo ano, calculado a partir do m\xEAs e dia de nascimento somados ao ano corrente \u2014 descreve o tema do ciclo anual em curso, n\xE3o um arqu\xE9tipo de vida inteira.",
+    keywords: [
+      "estrutura",
+      "trabalho consistente",
+      "ano pessoal",
+      "ciclo numerologico",
+      "numerologia"
+    ],
+    symbols: [],
+    number: 4,
+    references: ["Numerologia Pitag\xF3rica", "Ciclo de 9 anos"],
+    related: []
+  };
+
+  // src/knowledge/numerology/personal-year/personal-year-5.ts
+  var PersonalYear5 = {
+    id: "personal-year-5",
+    name: "Ano Pessoal 5",
+    system: "numerology",
+    category: "personal-year",
+    description: "O Ano Pessoal 5 \xE9 o ponto central do ciclo de nove anos e costuma trazer a maior varia\xE7\xE3o e imprevisibilidade \u2014 mudan\xE7as de dire\xE7\xE3o, viagens, novas experi\xEAncias e uma sensa\xE7\xE3o geral de inquieta\xE7\xE3o produtiva. \xC9 um ano que recompensa a flexibilidade e pune a rigidez excessiva. Diferente do Caminho de Vida (fixo desde o nascimento), o Ano Pessoal muda todo ano, calculado a partir do m\xEAs e dia de nascimento somados ao ano corrente \u2014 descreve o tema do ciclo anual em curso, n\xE3o um arqu\xE9tipo de vida inteira.",
+    keywords: [
+      "mudan\xE7a",
+      "liberdade",
+      "ano pessoal",
+      "ciclo numerologico",
+      "numerologia"
+    ],
+    symbols: [],
+    number: 5,
+    references: ["Numerologia Pitag\xF3rica", "Ciclo de 9 anos"],
+    related: []
+  };
+
+  // src/knowledge/numerology/personal-year/personal-year-6.ts
+  var PersonalYear6 = {
+    id: "personal-year-6",
+    name: "Ano Pessoal 6",
+    system: "numerology",
+    category: "personal-year",
+    description: "O Ano Pessoal 6 volta a aten\xE7\xE3o para casa, fam\xEDlia e responsabilidades que exigem cuidado \u2014 relacionamentos, compromissos assumidos e a necessidade de equilibrar as pr\xF3prias necessidades com as de quem depende de voc\xEA. \xC9 um ano de consolidar v\xEDnculos, n\xE3o de fugir deles. Diferente do Caminho de Vida (fixo desde o nascimento), o Ano Pessoal muda todo ano, calculado a partir do m\xEAs e dia de nascimento somados ao ano corrente \u2014 descreve o tema do ciclo anual em curso, n\xE3o um arqu\xE9tipo de vida inteira.",
+    keywords: [
+      "responsabilidade",
+      "cuidado",
+      "ano pessoal",
+      "ciclo numerologico",
+      "numerologia"
+    ],
+    symbols: [],
+    number: 6,
+    references: ["Numerologia Pitag\xF3rica", "Ciclo de 9 anos"],
+    related: []
+  };
+
+  // src/knowledge/numerology/personal-year/personal-year-7.ts
+  var PersonalYear7 = {
+    id: "personal-year-7",
+    name: "Ano Pessoal 7",
+    system: "numerology",
+    category: "personal-year",
+    description: "O Ano Pessoal 7 pede recuo \u2014 \xE9 um per\xEDodo naturalmente mais introspectivo, voltado para estudo, reflex\xE3o espiritual e reavalia\xE7\xE3o silenciosa do caminho percorrido at\xE9 aqui. For\xE7ar a\xE7\xE3o externa demais neste ano tende a frustrar; a energia rende mais quando dirigida para dentro. Diferente do Caminho de Vida (fixo desde o nascimento), o Ano Pessoal muda todo ano, calculado a partir do m\xEAs e dia de nascimento somados ao ano corrente \u2014 descreve o tema do ciclo anual em curso, n\xE3o um arqu\xE9tipo de vida inteira.",
+    keywords: [
+      "introspec\xE7\xE3o",
+      "busca interior",
+      "ano pessoal",
+      "ciclo numerologico",
+      "numerologia"
+    ],
+    symbols: [],
+    number: 7,
+    references: ["Numerologia Pitag\xF3rica", "Ciclo de 9 anos"],
+    related: []
+  };
+
+  // src/knowledge/numerology/personal-year/personal-year-8.ts
+  var PersonalYear8 = {
+    id: "personal-year-8",
+    name: "Ano Pessoal 8",
+    system: "numerology",
+    category: "personal-year",
+    description: "O Ano Pessoal 8 \xE9 o ano de colher o que foi plantado nos anos anteriores \u2014 favorece reconhecimento profissional, quest\xF5es financeiras e o exerc\xEDcio mais direto de poder e autoridade pessoal. \xC9 um per\xEDodo de assumir responsabilidade plena pelos pr\xF3prios resultados, tanto os bons quanto os que exigem corre\xE7\xE3o de rota. Diferente do Caminho de Vida (fixo desde o nascimento), o Ano Pessoal muda todo ano, calculado a partir do m\xEAs e dia de nascimento somados ao ano corrente \u2014 descreve o tema do ciclo anual em curso, n\xE3o um arqu\xE9tipo de vida inteira.",
+    keywords: [
+      "poder pessoal",
+      "resultados materiais",
+      "ano pessoal",
+      "ciclo numerologico",
+      "numerologia"
+    ],
+    symbols: [],
+    number: 8,
+    references: ["Numerologia Pitag\xF3rica", "Ciclo de 9 anos"],
+    related: []
+  };
+
+  // src/knowledge/numerology/personal-year/personal-year-9.ts
+  var PersonalYear9 = {
+    id: "personal-year-9",
+    name: "Ano Pessoal 9",
+    system: "numerology",
+    category: "personal-year",
+    description: "O Ano Pessoal 9 encerra o ciclo de nove anos \u2014 \xE9 o momento de soltar o que j\xE1 cumpriu seu prop\xF3sito, concluir o que ficou pendente e se preparar, atrav\xE9s da libera\xE7\xE3o, para o novo ciclo que come\xE7a com o pr\xF3ximo Ano Pessoal 1. Tentar iniciar coisas totalmente novas neste ano tende a ser menos produtivo do que finalizar o que j\xE1 est\xE1 em curso. Diferente do Caminho de Vida (fixo desde o nascimento), o Ano Pessoal muda todo ano, calculado a partir do m\xEAs e dia de nascimento somados ao ano corrente \u2014 descreve o tema do ciclo anual em curso, n\xE3o um arqu\xE9tipo de vida inteira.",
+    keywords: [
+      "fechamento",
+      "libera\xE7\xE3o",
+      "ano pessoal",
+      "ciclo numerologico",
+      "numerologia"
+    ],
+    symbols: [],
+    number: 9,
+    references: ["Numerologia Pitag\xF3rica", "Ciclo de 9 anos"],
+    related: []
+  };
+
   // src/knowledge/all.ts
   function isKnowledgeBase(value) {
     return typeof value === "object" && value !== null && "id" in value && "category" in value && "description" in value;
@@ -57313,6 +58466,21 @@
         normalizeIdentifier(sign)
       );
     }
+    resolveNakshatra(nakshatraId) {
+      return this.search.requireById(
+        normalizeIdentifier(nakshatraId)
+      );
+    }
+    resolveTreeSign(treeId) {
+      return this.search.requireById(
+        normalizeIdentifier(treeId)
+      );
+    }
+    resolvePersonalYear(year) {
+      return this.search.requireById(
+        `personal-year-${year}`
+      );
+    }
     resolvePlanet(name) {
       return this.search.requireById(
         normalizeIdentifier(name)
@@ -57696,6 +58864,12 @@
     const sefirah2Knowledge = tryResolve(
       () => resolver.resolveSefirah(engine.kabbalah.sefirah2)
     );
+    const nakshatraKnowledge = tryResolve(
+      () => resolver.resolveNakshatra(engine.vedic.moonNakshatra.id)
+    );
+    const treeSignKnowledge = tryResolve(
+      () => resolver.resolveTreeSign(engine.treeSign.treeId)
+    );
     return [
       (() => {
         const description = [
@@ -57804,6 +58978,26 @@
           description,
           shortDescription: firstSentence(description)
         };
+      })(),
+      (() => {
+        const description = nakshatraKnowledge?.description ?? `Sua Nakshatra (mans\xE3o lunar) na Astrologia V\xE9dica, calculada a partir da posi\xE7\xE3o sideral da Lua.`;
+        return {
+          system: "Astrologia V\xE9dica",
+          glyph: String(engine.vedic.moonNakshatra.pada),
+          value: nakshatraKnowledge?.name ?? engine.vedic.moonNakshatra.name,
+          description,
+          shortDescription: firstSentence(description)
+        };
+      })(),
+      (() => {
+        const description = treeSignKnowledge?.description ?? `Sua \xE1rvore no calend\xE1rio Ogham celta.`;
+        return {
+          system: "Zod\xEDaco Celta",
+          glyph: "\u1681",
+          value: treeSignKnowledge?.name ?? engine.treeSign.treeId,
+          description,
+          shortDescription: firstSentence(description)
+        };
       })()
     ];
   }
@@ -57850,6 +59044,14 @@
       moonPhaseName,
       moonIlluminatedFraction
     };
+  }
+
+  // src/engine/numerology/personal-year.ts
+  function calculatePersonalYear(input) {
+    const reducedMonth = reduceToSingleDigit(input.birthMonth);
+    const reducedDay = reduceToSingleDigit(input.birthDay);
+    const reducedYear = reduceToSingleDigit(input.year);
+    return reduceToSingleDigit(reducedMonth + reducedDay + reducedYear);
   }
 
   // src/prompts/system-prompt.ts
@@ -58139,6 +59341,27 @@ Quem est\xE1 perguntando nunca estudou nenhum desses sistemas \u2014 n\xE3o pres
         buildEnneagramPlacement(enneagram.primaryType, enneagram.wingType, resolver)
       );
     }
+    const [, birthMonthStr, birthDayStr] = birthData.birthDate.split("-").map(Number);
+    const personalYear = calculatePersonalYear({
+      birthMonth: birthMonthStr,
+      birthDay: birthDayStr,
+      year: (/* @__PURE__ */ new Date()).getFullYear()
+    });
+    const personalYearKnowledge = tryResolve(
+      () => resolver.resolvePersonalYear(personalYear)
+    );
+    const personalYearDescription = personalYearKnowledge?.description ?? `Seu Ano Pessoal ${personalYear} na Numerologia \u2014 o tema do ciclo anual em curso.`;
+    brief += `
+
+## Ano Pessoal (${(/* @__PURE__ */ new Date()).getFullYear()})
+Ano Pessoal ${personalYear}: ${personalYearDescription}`;
+    placements.push({
+      system: "Ano Pessoal",
+      glyph: String(personalYear),
+      value: personalYearKnowledge?.name ?? `Ano Pessoal ${personalYear}`,
+      description: personalYearDescription,
+      shortDescription: firstSentence(personalYearDescription)
+    });
     return { engine, cross, brief, placements, enneagram };
   }
   window.NUN = {
